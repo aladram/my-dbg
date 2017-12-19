@@ -1,16 +1,21 @@
 #include "my-dbg.h"
 
+#include <err.h>
 #include <readline/history.h>
 #include <stdlib.h>
 
+#include "binary.h"
 #include "commands.h"
 #include "prompt.h"
 
 int main(int argc, char **argv)
 {
-    (void)argc;
+    if (argc <= 1)
+        errx(1, "Usage: %s <path to binary> [arguments ...]", argv[0]);
 
-    (void)argv;
+    setup_binary(argv + 1);
+
+    history_word_delimiters = " \t";
 
     while (1)
     {

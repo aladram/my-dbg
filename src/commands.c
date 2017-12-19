@@ -16,7 +16,11 @@ static struct my_cmd *get_command(char *name)
 {
     struct my_cmd *cmd_matched = NULL;
 
-    for (ssize_t i = 0; i < __stop_cmds - __start_cmds; ++i)
+    size_t start = (size_t) __start_cmds;
+
+    size_t end = (size_t) __stop_cmds;
+
+    for (size_t i = 0; i < (end - start) / sizeof(struct my_cmd); ++i)
     {
         struct my_cmd *cmd = __start_cmds + i;
 
@@ -72,7 +76,11 @@ static void cmd_help(size_t argc, char **argv)
         return;
     }
 
-    for (ssize_t i = 0; i < __stop_cmds - __start_cmds; ++i)
+    size_t start = (size_t) __start_cmds;
+
+    size_t end = (size_t) __stop_cmds;
+
+    for (size_t i = 0; i < (end - start) / sizeof(struct my_cmd); ++i)
     {
         struct my_cmd *cmd = __start_cmds + i;
 
