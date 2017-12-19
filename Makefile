@@ -1,10 +1,23 @@
-CPPFLAGS = -Iinclude/
+CC = gcc
+
+CPPFLAGS =  \
+-Iinclude/ \
+-Iinclude/utils/ \
+-D_GNU_SOURCE \
+-MMD
 
 CFLAGS = -Wall -Werror -Wextra -std=c99 -pedantic
 
-VPATH = src/
+LDLIBS = -lreadline -lhistory
 
-FILES = my-dbg.c
+VPATH = src/:src/utils/
+
+FILES = \
+my-dbg.c \
+commands.c \
+prompt.c \
+array_utils.c \
+string_utils.c
 
 OBJS = $(FILES:%.c=%.o)
 
@@ -15,4 +28,6 @@ all: $(BIN)
 $(BIN): $(OBJS)
 
 clean:
-	$(RM) $(BIN) $(OBJS)
+	$(RM) $(BIN) $(OBJS) $(OBJS:.o=.d)
+
+-include $(OBJS:.o=.d)
