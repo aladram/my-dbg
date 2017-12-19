@@ -33,6 +33,8 @@ int main(int argc, char **argv)
 
         if (tokens && *tokens)
             run_command(*tokens, tokens);
+
+        free(tokens);
     }
 
     return 0;
