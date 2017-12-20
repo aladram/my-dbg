@@ -41,7 +41,7 @@ static size_t add_mem_mapping(struct my_mem_mapping **mappings,
     mapping->objfile = my_calloc(MY_PATH_MAX, 1);
 
     int ret = sscanf(line,
-                     "%zx-%zx %c%c%c%c %8zx %2llu:%2llu %llu[ ]+%s",
+                     "%zx-%zx %c%c%c%c %8zx %2llu:%2llu %llu %s",
                      (size_t *) &mapping->start,
                      (size_t *) &mapping->end,
                      &c, &c, &c, &c,
@@ -145,7 +145,24 @@ static void cmd_info_memory(size_t argc, char **argv)
 
     size_t length = get_mem_mappings(&mappings);
 
-    (void)length;
+    printf("%18s %18s %10s %10s %s\n",
+           "Start Addr",
+           "End Addr",
+           "Size",
+           "Offset",
+           "Objfile");
+
+    for (size_t i = 0; i < length; ++i)
+    {
+        struct my_mem_mapping *mapping = mappings + i;
+
+        printf("%18p %18p %#10zx %#10zx %s\n",
+               mapping->start,
+               mapping->end,
+               (size_t) mapping->end - (size_t) mapping->start,
+               mapping->offset,
+               mapping->objfile);
+    }
 }
 
 register_command(info_memory, cmd_info_memory, "Display mapped memory regions");
