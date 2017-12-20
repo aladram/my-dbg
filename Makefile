@@ -18,8 +18,10 @@ commands.c \
 prompt.c \
 array_utils.c \
 string_utils.c \
+memory_utils.c \
 cmd_quit.c \
 cmd_info_regs.c \
+cmd_info_memory.c \
 binary.c
 
 OBJS = $(FILES:%.c=%.o)
