@@ -8,6 +8,8 @@
 #include "commands.h"
 #include "prompt.h"
 
+int g_quit = 0;
+
 int main(int argc, char **argv)
 {
     if (argc <= 1)
@@ -17,7 +19,7 @@ int main(int argc, char **argv)
 
     history_word_delimiters = " \t";
 
-    while (1)
+    while (!g_quit)
     {
         char *str = prompt();
 

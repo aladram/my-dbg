@@ -19,6 +19,7 @@ prompt.c \
 array_utils.c \
 string_utils.c \
 cmd_quit.c \
+cmd_info_regs.c \
 binary.c
 
 OBJS = $(FILES:%.c=%.o)

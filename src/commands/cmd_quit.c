@@ -1,7 +1,7 @@
 #include <stddef.h>
-#include <stdlib.h>
 
 #include "commands.h"
+#include "my-dbg.h"
 
 static void cmd_quit(size_t argc, char **argv)
 {
@@ -9,7 +9,7 @@ static void cmd_quit(size_t argc, char **argv)
 
     (void)argv;
 
-    exit(0);
+    g_quit = 1;
 }
 
 register_command(quit, cmd_quit, "Exit my-dbg");
