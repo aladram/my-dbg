@@ -1,11 +1,11 @@
 #include <err.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <sys/ptrace.h>
 #include <sys/user.h>
 
 #include "binary.h"
 #include "commands.h"
+#include "registers.h"
 
 static void print_register(char *name, unsigned long long int reg)
 {
@@ -53,14 +53,11 @@ static void cmd_info_regs(size_t argc, char **argv)
 
     struct user_regs_struct regs;
 
-    if (ptrace (PTRACE_GETREGS, g_pid, NULL, &regs) == -1)
-    {
-        warn("ptrace failed");
-
-        return;
-    }
-
-    print_registers(&regs);
+    if (get_registers(&regs))
+        print_registers(&regs);
 }
 
-register_command(info_regs, cmd_info_regs, "Display registers");
+register_command(info_regs,
+                 cmd_info_regs,
+                 "Display registers",
+                 "info_regs");

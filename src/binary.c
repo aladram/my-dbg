@@ -18,14 +18,18 @@ void setup_binary(char **argv)
 
     if (!g_pid)
     {
-        ptrace(PTRACE_TRACEME, 0, NULL, NULL);
-
-        // TODO: communicate between father and child to catch execvp errors
+        if (ptrace(PTRACE_TRACEME, 0, NULL, NULL) == -1)
+            err(1, "ptrace failed");
 
         if (execvp(argv[0], argv) == -1)
             err(1, "%s", argv[0]);
     }
 
-    if (waitpid(g_pid, NULL, 0) == -1)
+    int wstatus;
+
+    if (waitpid(g_pid, &wstatus, 0) == -1)
         err(1, "waitpid failed");
+
+    if (!WIFSTOPPED(wstatus) || WSTOPSIG(wstatus) != SIGTRAP)
+        errx(1, "An error occured while trying to debug program, exiting");
 }

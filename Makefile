@@ -22,7 +22,11 @@ memory_utils.c \
 cmd_quit.c \
 cmd_info_regs.c \
 cmd_info_memory.c \
-binary.c
+cmd_break.c \
+cmd_continue.c \
+binary.c \
+breakpoints.c \
+registers.c
 
 OBJS = $(FILES:%.c=%.o)
 

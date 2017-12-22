@@ -10,17 +10,17 @@ struct my_cmd {
 
     void (*function)(size_t, char **);
 
-    size_t padding;
+    const char *usage;
 };
 
-#define register_command(Name, Function, Description) \
+#define register_command(Name, Function, Description, Usage) \
     static struct my_cmd __cmd_ ## Name \
 __attribute__ ((section("cmds"), used)) = \
 { \
     .name = #Name, \
     .description = Description, \
     .function = Function, \
-    .padding = 0 \
+    .usage = Usage \
 }
 
 void run_command(char *name, char **args);

@@ -59,7 +59,7 @@ void run_command(char *name, char **args)
 static void print_help(struct my_cmd *cmd)
 {
     if (cmd)
-        printf("%s: %s\n", cmd->name, cmd->description);
+        printf("%s: %s\n", cmd->usage, cmd->description);
 }
 
 static void cmd_help(size_t argc, char **argv)
@@ -88,4 +88,7 @@ static void cmd_help(size_t argc, char **argv)
     }
 }
 
-register_command(help, cmd_help, "Display this help message");
+register_command(help,
+                 cmd_help,
+                 "Display this help message, or specified commands help",
+                 "help [command ...]");
