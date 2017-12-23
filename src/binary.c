@@ -21,8 +21,9 @@ void setup_binary(char **argv)
         if (ptrace(PTRACE_TRACEME, 0, NULL, NULL) == -1)
             err(1, "ptrace failed");
 
-        if (execvp(argv[0], argv) == -1)
-            err(1, "%s", argv[0]);
+        if (execv(argv[0], argv) == -1)
+            if (execvp(argv[0], argv) == -1)
+                err(1, "%s", argv[0]);
     }
 
     int wstatus;
