@@ -73,6 +73,8 @@ size_t place_breakpoint(void *addr)
 
     breakpoints = my_realloc(breakpoints, ++bp_len * sizeof(struct my_bp));
 
+    breakpoints[bp_len - 1].id = bp_len;
+
     breakpoints[bp_len - 1].addr = addr;
 
     breakpoints[bp_len - 1].word = word;

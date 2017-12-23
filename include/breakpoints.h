@@ -5,6 +5,8 @@
 
 struct my_bp
 {
+    size_t id;
+
     void *addr;
 
     size_t word;
