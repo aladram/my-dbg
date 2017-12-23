@@ -82,4 +82,7 @@ void set_register(enum my_reg reg, size_t value)
     size_t *reg_ptr = get_register_internal(&regs, reg);
 
     *reg_ptr = value;
+
+    if (ptrace(PTRACE_SETREGS, g_pid, NULL, &regs) == -1)
+        warn("ptrace failed");
 }

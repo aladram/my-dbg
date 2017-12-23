@@ -12,22 +12,7 @@
 #include "my-dbg.h"
 #include "registers.h"
 
-static int continue_execution(void)
-{
-    // TODO: handle breakpoint removal
-
-    // TODO: handle continue signal
-    if (ptrace(PTRACE_CONT, g_pid, NULL, NULL) == -1)
-    {
-        warn("ptrace failed");
-
-        return 0;
-    }
-
-    return 1;
-}
-
-static void wait_program(void)
+static int wait_program(void)
 {
     int wstatus;
 
@@ -35,12 +20,12 @@ static void wait_program(void)
     {
         warn("waitpid failed");
 
-        return;
+        return 0;
     }
 
     if (WIFSTOPPED(wstatus))
     {
-        void *addr = (void *) get_register(MY_REG_RIP);
+        void *addr = (void *) (get_register(MY_REG_RIP) - 1);
 
         if (is_breakpoint(addr))
         {
@@ -51,26 +36,63 @@ static void wait_program(void)
             //TODO
 
             /* if (signal is SIGTRAP): return */
+
+            return 0;
         }
 
         //TODO: message for signal
+
+        return 1;
     }
+
+    if (WIFEXITED(wstatus))
+        printf("Process %d exited with code %hhd\n",
+                g_pid, WEXITSTATUS(wstatus));
+
+    else if (WIFSIGNALED(wstatus))
+        printf("Process %d terminated by signal %s\n",
+                g_pid, strsignal(WSTOPSIG(wstatus)));
 
     else
+        warnx("something went wrong");
+
+    g_quit = 1;
+
+    return 0;
+}
+
+static void continue_execution(void)
+{
+    void *addr = (void *) (get_register(MY_REG_RIP) - 1);
+
+    if (is_breakpoint(addr))
     {
-        if (WIFEXITED(wstatus))
-            printf("Process %d exited with code %hhd\n",
-                   g_pid, WEXITSTATUS(wstatus));
+        struct my_bp *bp = get_breakpoint(addr);
 
-        else if (WIFSIGNALED(wstatus))
-            printf("Process %d terminated by signal %s\n",
-                   g_pid, strsignal(WSTOPSIG(wstatus)));
+        toggle_breakpoint(bp);
 
-        else
-            warnx("something went wrong");
+        set_register(MY_REG_RIP, (size_t) addr);
 
-        g_quit = 1;
+        // TODO: handle continue signal
+        if (ptrace(PTRACE_SINGLESTEP, g_pid, NULL, NULL) == -1)
+            goto error;
+        
+        if (!wait_program())
+            return;
+
+        toggle_breakpoint(bp);
     }
+
+    // TODO: handle continue signal
+    if (ptrace(PTRACE_CONT, g_pid, NULL, NULL) == -1)
+        goto error;
+
+    wait_program();
+
+    return;
+
+error:
+    warn("ptrace failed");
 }
 
 static void cmd_continue(size_t argc, char **argv)
@@ -79,12 +101,9 @@ static void cmd_continue(size_t argc, char **argv)
 
     (void)argv;
 
-    if (!continue_execution())
-        return;
-
     puts("Continuing.");
 
-    wait_program();
+    continue_execution();
 }
 
 register_command(continue,
