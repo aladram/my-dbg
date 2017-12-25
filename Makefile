@@ -24,6 +24,7 @@ cmd_info_regs.c \
 cmd_info_memory.c \
 cmd_break.c \
 cmd_continue.c \
+cmd_step_instr.c \
 binary.c \
 breakpoints.c \
 registers.c
