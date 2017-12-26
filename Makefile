@@ -19,15 +19,18 @@ prompt.c \
 array_utils.c \
 string_utils.c \
 memory_utils.c \
+format_utils.c \
 cmd_quit.c \
 cmd_info_regs.c \
 cmd_info_memory.c \
 cmd_break.c \
 cmd_continue.c \
 cmd_step_instr.c \
+cmd_examine.c \
 binary.c \
 breakpoints.c \
-registers.c
+registers.c \
+memory.c
 
 OBJS = $(FILES:%.c=%.o)
 

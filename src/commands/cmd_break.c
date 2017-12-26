@@ -8,6 +8,7 @@
 #include "binary.h"
 #include "breakpoints.h"
 #include "commands.h"
+#include "format_utils.h"
 #include "memory_utils.h"
 
 static void cmd_break(size_t argc, char **argv)
@@ -20,17 +21,9 @@ static void cmd_break(size_t argc, char **argv)
     }
 
     void *addr;
-
-    int len = 0;
-
-    if (strlen(argv[1]) > 18
-        || sscanf(argv[1], "%18p%n", &addr, &len) != 1
-        || len != (int) strlen(argv[1]))
-    {
-        warnx("Invalid address specified\nValid address example: 0xcafebabe");
-
+    
+    if (!read_address(argv[1], &addr))
         return;
-    }
 
     size_t nb = place_breakpoint(addr);
 

@@ -6,8 +6,7 @@
 #include "binary.h"
 #include "commands.h"
 #include "memory_utils.h"
-
-#define MY_PATH_MAX 4096
+#include "my_limits.h"
 
 struct my_mem_mapping
 {

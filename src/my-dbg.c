@@ -1,6 +1,7 @@
 #include "my-dbg.h"
 
 #include <err.h>
+#include <stdio.h>
 #include <readline/history.h>
 #include <stdlib.h>
 
