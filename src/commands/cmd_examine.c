@@ -99,6 +99,8 @@ static void examine_instructions(void *addr, char *mem, size_t size)
     if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK)
         return;
 
+    cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
+
     size_t count = cs_disasm(handle, (uint8_t *) mem, size, 0, 0, &insn);
 
     if (count)
