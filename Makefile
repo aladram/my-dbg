@@ -3,12 +3,13 @@ CC = gcc
 CPPFLAGS =  \
 -Iinclude/ \
 -Iinclude/utils/ \
+-Icapstone/ \
 -D_GNU_SOURCE \
 -MMD
 
-CFLAGS = -Wall -Werror -Wextra -std=c99 -pedantic
+CFLAGS = -Wall -Werror -Wextra -std=c99
 
-LDLIBS = -lreadline -lhistory
+LDLIBS = -lreadline -lhistory -Lcapstone/ -lcapstone
 
 VPATH = src/:src/utils/:src/commands/
 

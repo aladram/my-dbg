@@ -1,8 +1,9 @@
-#include <assert.h>
+#include <capstone/capstone.h>
 #include <ctype.h>
 #include <err.h>
-#include <stddef.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "array_utils.h"
@@ -89,6 +90,32 @@ static void examine_string(char *mem, size_t size)
     printf("\"\n");
 }
 
+static void examine_instructions(void *addr, char *mem, size_t size)
+{
+    csh handle;
+
+    cs_insn *insn;
+
+    if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK)
+        return;
+
+    size_t count = cs_disasm(handle, (uint8_t *) mem, size, 0, 0, &insn);
+
+    if (count)
+    {
+        for (size_t i = 0; i < count; i++)
+            printf("%-18p%-7s%s\n", (void *) ((size_t) addr + insn[i].address),
+                   insn[i].mnemonic, insn[i].op_str);
+
+        cs_free(insn, count);
+    }
+
+    else
+        warnx("Dissasemble failed");
+
+    cs_close(&handle);
+}
+
 static void examine_memory(char format, void *addr, size_t size)
 {
     char *mem = read_memory(addr, size);
@@ -96,25 +123,19 @@ static void examine_memory(char format, void *addr, size_t size)
     if (!mem)
         return;
 
-    switch (format)
-    {
-    case 'x':
+    if (format == 'x')
         examine_hexa(mem, size);
 
-        break;
-
-    case 'd':
+    else if (format == 'd')
         examine_decimal(mem, size);
 
-        break;
-
-    case 's':
+    else if (format == 's')
         examine_string(mem, size);
 
-    default:
-        assert("Not implemented");
-    }
+    else if (format == 'i')
+        examine_instructions(addr, mem, size);
 
+    free(mem);
 }
 
 static void cmd_examine(size_t argc, char **argv)

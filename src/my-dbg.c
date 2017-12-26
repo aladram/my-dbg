@@ -37,6 +37,9 @@ int main(int argc, char **argv)
         if (tokens && *tokens)
             run_command(*tokens, tokens);
 
+        for (size_t i = 0; tokens[i]; ++i)
+            free(tokens[i]);
+
         free(tokens);
     }
 

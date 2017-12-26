@@ -43,6 +43,8 @@ char *read_memory(void *addr, size_t size)
     {
         warn("malloc failed");
 
+        close(fd);
+
         return NULL;
     }
 
@@ -52,12 +54,18 @@ char *read_memory(void *addr, size_t size)
         warn("pread failed");
 
     else if ((size_t) ret == size)
+    {
+        close(fd);
+
         return buf;
+    }
 
     else
         warnx("Cannot read the whole requested memory");
 
     free(buf);
+
+    close(fd);
 
     return NULL;
 }
