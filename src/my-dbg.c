@@ -7,6 +7,7 @@
 
 #include "binary.h"
 #include "commands.h"
+#include "libunwind_wrapper.h"
 #include "prompt.h"
 
 int g_quit = 0;
@@ -17,6 +18,8 @@ int main(int argc, char **argv)
         errx(1, "Usage: %s <path to binary> [arguments ...]", argv[0]);
 
     setup_binary(argv + 1);
+
+    init_libunwind();
 
     history_word_delimiters = " \t";
 
@@ -37,11 +40,13 @@ int main(int argc, char **argv)
         if (tokens && *tokens)
             run_command(*tokens, tokens);
 
-        for (size_t i = 0; tokens[i]; ++i)
+        for (size_t i = 0; tokens && tokens[i]; ++i)
             free(tokens[i]);
 
         free(tokens);
     }
+
+    destroy_libunwind();
 
     return 0;
 }
