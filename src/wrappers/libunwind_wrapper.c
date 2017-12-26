@@ -46,7 +46,10 @@ void init_libunwind(void)
 
         return;
     }
-    
+
+    // If it fails, we don't care: it will just be slower
+    unw_set_caching_policy(addr_space, UNW_CACHE_GLOBAL); 
+
     info = _UPT_create(g_pid);
 
     if (!info)
@@ -107,6 +110,13 @@ void print_backtrace(void)
 
     int step = unw_step(&cursor);
 
+    if (!step)
+    {
+        warnx("No stack");
+
+        return;
+    }
+
     for (; step > 0; step = unw_step(&cursor)) {
         ret = unw_get_reg(&cursor, UNW_REG_IP, &ip);
 
@@ -126,7 +136,7 @@ void print_backtrace(void)
             return;
         }
 
-        printf ("ip = %lx, sp = %lx\n", (long) ip, (long) sp);
+        printf("ip = %p, sp = %p\n", (void *) ip, (void *) sp);
     }
 
     if (step < 0)
