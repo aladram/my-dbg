@@ -35,9 +35,9 @@ char *read_memory(void *addr, size_t size)
     * if read_memory fails because user asked for too large memory
     * page using examine command.
     */
-    char *buf = malloc((size / sizeof(size_t)
+    char *buf = calloc((size / sizeof(size_t)
                         + ((size % sizeof(size_t)) ? 1 : 0))
-                       * sizeof(size_t));
+                       * sizeof(size_t), 1);
 
     if (!buf)
     {
