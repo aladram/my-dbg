@@ -106,7 +106,7 @@ static void examine_instructions(void *addr, char *mem, size_t size)
     if (count)
     {
         for (size_t i = 0; i < count; i++)
-            printf("%-18p%-7s%s\n", (void *) ((size_t) addr + insn[i].address),
+            printf("%-18p%-16s%s\n", (void *) ((size_t) addr + insn[i].address),
                    insn[i].mnemonic, insn[i].op_str);
 
         cs_free(insn, count);
