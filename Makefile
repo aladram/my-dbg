@@ -8,7 +8,7 @@ CPPFLAGS =  \
 -D_GNU_SOURCE \
 -MMD
 
-CFLAGS = -Wall -Werror -Wextra -std=c99
+CFLAGS = -Wall -Werror -Wextra -std=c99 -pedantic
 
 LDLIBS = \
 -ldl \
