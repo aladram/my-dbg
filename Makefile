@@ -11,6 +11,7 @@ CPPFLAGS =  \
 CFLAGS = -Wall -Werror -Wextra -std=c99
 
 LDLIBS = \
+-ldl \
 -lreadline -lhistory \
 -Lcapstone/ -lcapstone \
 -lunwind -lunwind-ptrace -lunwind-x86_64 
@@ -37,6 +38,7 @@ binary.c \
 breakpoints.c \
 registers.c \
 memory.c \
+mem_mappings.c \
 libunwind_wrapper.c
 
 OBJS = $(FILES:%.c=%.o)

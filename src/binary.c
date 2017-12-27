@@ -18,8 +18,6 @@ pid_t g_pid;
 
 int g_signum;
 
-int g_hit_bp;
-
 void setup_binary(char **argv)
 {
     g_pid = fork();
@@ -56,8 +54,6 @@ int wait_program(int step)
 
         return 0;
     }
-
-    g_hit_bp = 0;
 
     if (WIFSTOPPED(wstatus))
     {

@@ -1,11 +1,13 @@
 #include "libunwind_wrapper.h"
 
+#include <dlfcn.h>
 #include <err.h>
 #include <libunwind.h>
 #include <libunwind-ptrace.h>
 #include <stdio.h>
 
 #include "binary.h"
+#include "mem_mappings.h"
 
 #define MY_UNW_EINVAL "unw_init_remote() was called in a version" \
                       " of libunwind which supports local unwinding only"
@@ -83,6 +85,28 @@ static void print_error(int ret)
         warn(MY_UNW_ESTOPUNWIND);
 }
 
+char *get_binary_file(struct my_mem_mapping **mappings, void *addr)
+{
+    if (!mappings)
+        return NULL;
+
+    struct my_mem_mapping *mapping = find_mem_mappings(mappings, addr);
+
+    if (!mapping)
+        return NULL;
+
+    if (mapping->objfile[0] != '/')
+        return NULL;
+
+    return mapping->objfile;
+}
+
+#define MY_BT_ERROR(Ret) { \
+                             print_error(Ret); \
+                             free_mem_mappings(mappings); \
+                             return; \
+                         }
+
 void print_backtrace(void)
 {
     if (!addr_space)
@@ -93,20 +117,14 @@ void print_backtrace(void)
         return;
     }
 
+    struct my_mem_mapping **mappings = get_mem_mappings();
+
     unw_cursor_t cursor;
 
     int ret = unw_init_remote(&cursor, addr_space, info);
 
     if (ret)
-    {
-        print_error(ret);
-
-        return;
-    }
-
-    unw_word_t ip;
-
-    unw_word_t sp;
+        MY_BT_ERROR(ret);
 
     int step = unw_step(&cursor);
 
@@ -117,30 +135,39 @@ void print_backtrace(void)
         return;
     }
 
-    for (; step > 0; step = unw_step(&cursor)) {
+    for (size_t count = 0; step > 0; step = unw_step(&cursor), ++count) {
+        unw_word_t ip;
+
         ret = unw_get_reg(&cursor, UNW_REG_IP, &ip);
 
         if (ret)
-        {
-            print_error(ret);
+            MY_BT_ERROR(ret);
 
-            return;
-        }
+        char buf[32];
 
-        ret = unw_get_reg(&cursor, UNW_REG_SP, &sp);
+        unw_word_t offp;
 
-        if (ret)
-        {
-            print_error(ret);
+        ret = unw_get_proc_name(&cursor, buf, 31, &offp);
 
-            return;
-        }
+        buf[31] = 0;
 
-        printf("ip = %p, sp = %p\n", (void *) ip, (void *) sp);
+        printf("#%zu %18p", count, (void *) ip);
+       
+        if (!ret || ret == UNW_ENOMEM)
+            printf(" in %s%s", buf, ret == UNW_ENOMEM ? "..." : "");
+
+        char *path = get_binary_file(mappings, (void *) ip);
+
+        if (path)
+            printf(" from %s", path);
+
+        printf("\n");
     }
 
     if (step < 0)
-        print_error(step);
+        MY_BT_ERROR(step);
+
+    free_mem_mappings(mappings);
 }
 
 void destroy_libunwind(void)
