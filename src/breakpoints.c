@@ -31,6 +31,9 @@ int is_breakpoint(void *addr)
 
 void toggle_breakpoint(struct my_bp *bp)
 {
+    if (!bp->enabled && bp->temp)
+        return;
+
     errno = 0;
 
     size_t word = ptrace(PTRACE_PEEKDATA, g_pid, bp->addr, NULL);
@@ -57,7 +60,7 @@ error:
     warn("ptrace failed");
 }
 
-size_t place_breakpoint(void *addr)
+size_t place_breakpoint(void *addr, int temp)
 {
     errno = 0;
     
@@ -80,6 +83,8 @@ size_t place_breakpoint(void *addr)
     breakpoints[bp_len - 1].word = word;
 
     breakpoints[bp_len - 1].enabled = 1;
+
+    breakpoints[bp_len - 1].temp = temp;
 
     return bp_len;
 

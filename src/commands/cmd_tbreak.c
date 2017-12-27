@@ -11,7 +11,7 @@
 #include "format_utils.h"
 #include "memory_utils.h"
 
-static void cmd_break(size_t argc, char **argv)
+static void cmd_tbreak(size_t argc, char **argv)
 {
     if (argc <= 1)
     {
@@ -25,13 +25,13 @@ static void cmd_break(size_t argc, char **argv)
     if (!read_address(argv[1], &addr))
         return;
 
-    size_t nb = place_breakpoint(addr, 0);
+    size_t nb = place_breakpoint(addr, 1);
 
     if (nb)
         printf("Breakpoint %zu placed at %p\n", nb, addr);
 }
 
-register_command(break,
-                 cmd_break,
-                 "Set a breakpoint at specified addresses",
-                 "break <address>");
+register_command(tbreak,
+                 cmd_tbreak,
+                 "Set a temporary breakpoint at specified addresses",
+                 "tbreak <address>");
