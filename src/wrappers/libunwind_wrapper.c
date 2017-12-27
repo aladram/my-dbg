@@ -5,9 +5,14 @@
 #include <libunwind.h>
 #include <libunwind-ptrace.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "binary.h"
 #include "mem_mappings.h"
+
+#define MY_MAX_BT_DEPTH 64
 
 #define MY_UNW_EINVAL "unw_init_remote() was called in a version" \
                       " of libunwind which supports local unwinding only"
@@ -98,6 +103,25 @@ char *get_binary_file(struct my_mem_mapping **mappings, void *addr)
     if (mapping->objfile[0] != '/')
         return NULL;
 
+    char path[32];
+
+    // Silence any sprintf error
+    if (sprintf(path, "/proc/%d/exe", g_pid) <= 10)
+        return NULL;
+
+    struct stat sb;
+
+    struct stat my_sb;
+
+    // Silence any stat error
+    if (stat(mapping->objfile, &sb) == -1
+        || stat(path, &my_sb) == -1)
+        return NULL;
+
+    // Ignore our own binary
+    if (sb.st_ino == my_sb.st_ino)
+        return NULL;
+
     return mapping->objfile;
 }
 
@@ -135,7 +159,8 @@ void print_backtrace(void)
         return;
     }
 
-    for (size_t count = 0; step > 0; step = unw_step(&cursor), ++count) {
+    for (size_t count = 0; step > 0 && count < MY_MAX_BT_DEPTH;
+         step = unw_step(&cursor), ++count) {
         unw_word_t ip;
 
         ret = unw_get_reg(&cursor, UNW_REG_IP, &ip);
@@ -151,7 +176,7 @@ void print_backtrace(void)
 
         buf[31] = 0;
 
-        printf("#%zu %18p", count, (void *) ip);
+        printf("#%-2zu %18p", count, (void *) ip);
        
         if (!ret || ret == UNW_ENOMEM)
             printf(" in %s%s", buf, ret == UNW_ENOMEM ? "..." : "");
