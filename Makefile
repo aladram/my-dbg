@@ -13,7 +13,7 @@ CFLAGS = -Wall -Werror -Wextra -std=c99
 LDLIBS = \
 -ldl \
 -lreadline -lhistory \
--Lcapstone/ -lcapstone \
+-lcapstone \
 -lunwind -lunwind-ptrace -lunwind-x86_64 
 
 VPATH = src/:src/utils/:src/commands/:src/wrappers/
