@@ -3,13 +3,12 @@
 #include <err.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <sys/ptrace.h>
 #include <sys/user.h>
 
 #include "binary.h"
 #include "commands.h"
 #include "exceptions.h"
-
+#include "my_syscalls.h"
 
 #define CASE_REG(RegUp, RegLow) case RegUp: \
                                     return (size_t *) &regs->RegLow;
@@ -53,8 +52,7 @@ static size_t *get_register_internal(struct user_regs_struct *regs,
 
 void get_registers(struct user_regs_struct *regs)
 {
-    if (ptrace(PTRACE_GETREGS, g_pid, NULL, regs) == -1)
-        throw(TraceException);
+    my_ptrace(PTRACE_GETREGS, NULL, regs);
 }
 
 size_t get_register(enum my_reg reg)
@@ -76,6 +74,5 @@ void set_register(enum my_reg reg, size_t value)
 
     *reg_ptr = value;
 
-    if (ptrace(PTRACE_SETREGS, g_pid, NULL, &regs) == -1)
-        warn("ptrace failed");
+    my_ptrace(PTRACE_SETREGS, NULL, &regs);
 }

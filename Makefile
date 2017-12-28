@@ -44,7 +44,8 @@ memory.c \
 mem_mappings.c \
 errors.c \
 libunwind_wrapper.c \
-capstone_wrapper.c
+capstone_wrapper.c \
+my_syscalls.c
 
 OBJS = $(FILES:%.c=%.o)
 

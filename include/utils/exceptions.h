@@ -41,7 +41,7 @@ enum my_exception
 {
     None            = 0,
     Exception       = 1,
-    TraceException  = 2,
+    PtraceException  = 2,
     WaitException   = 3,
     ScanfException  = 4
 };

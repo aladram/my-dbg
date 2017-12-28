@@ -10,3 +10,13 @@ void ptrace_error(void)
 
     warn("ptrace error");
 }
+
+void wait_error(void)
+{
+    warn("wait error");
+}
+
+void sscanf_error(void)
+{
+    warnx("sscanf error");
+}

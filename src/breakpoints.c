@@ -5,11 +5,11 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/ptrace.h>
 
 #include "binary.h"
 #include "commands.h"
 #include "memory_utils.h"
+#include "my_syscalls.h"
 
 static struct my_bp *breakpoints;
 
@@ -34,12 +34,7 @@ void toggle_breakpoint(struct my_bp *bp)
     if (!bp->enabled && bp->temp)
         return;
 
-    errno = 0;
-
-    size_t word = ptrace(PTRACE_PEEKDATA, g_pid, bp->addr, NULL);
-
-    if (errno)
-        goto error;
+    size_t word = my_ptrace(PTRACE_PEEKDATA, bp->addr, NULL);
 
     word = (word & (~0xFF));
 
@@ -49,30 +44,18 @@ void toggle_breakpoint(struct my_bp *bp)
     else
         word |= bp->word & 0xFF;
 
-    if (ptrace(PTRACE_POKEDATA, g_pid, bp->addr, (void *) word) == -1)
-        goto error;
+    my_ptrace(PTRACE_POKEDATA, bp->addr, (void *) word);
 
     bp->enabled = !bp->enabled;
-
-    return;
-
-error:
-    warn("ptrace failed");
 }
 
 size_t place_breakpoint(void *addr, int temp)
 {
-    errno = 0;
-    
-    size_t word = ptrace(PTRACE_PEEKDATA, g_pid, addr, NULL);
-
-    if (errno)
-        goto error;
+    size_t word = my_ptrace(PTRACE_PEEKDATA, addr, NULL);
 
     size_t word_bp = (word & (~0xFF)) | 0xCC;
 
-    if (ptrace(PTRACE_POKEDATA, g_pid, addr, (void *) word_bp) == -1)
-        goto error;
+    my_ptrace(PTRACE_POKEDATA, addr, (void *) word_bp);
 
     breakpoints = my_realloc(breakpoints, ++bp_len * sizeof(struct my_bp));
 
@@ -87,9 +70,4 @@ size_t place_breakpoint(void *addr, int temp)
     breakpoints[bp_len - 1].temp = temp;
 
     return bp_len;
-
-error:
-    warn("ptrace failed");
-
-    return 0;
 }

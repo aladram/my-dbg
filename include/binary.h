@@ -5,8 +5,6 @@
 
 pid_t g_pid;
 
-int g_signum;
-
 void setup_binary(char **argv);
 
 int wait_program(int step);

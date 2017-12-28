@@ -27,8 +27,7 @@ static void cmd_break(size_t argc, char **argv)
 
     size_t nb = place_breakpoint(addr, 0);
 
-    if (nb)
-        printf("Breakpoint %zu placed at %p\n", nb, addr);
+    printf("Breakpoint %zu placed at %p\n", nb, addr);
 }
 
 register_command(break,

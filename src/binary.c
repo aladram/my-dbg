@@ -11,13 +11,18 @@
 #include <unistd.h>
 
 #include "breakpoints.h"
+#include "exceptions.h"
 #include "my-dbg.h"
+#include "my_syscalls.h"
 #include "registers.h"
 
 pid_t g_pid;
 
-int g_signum;
+static size_t g_signum;
 
+/*
+* Classic error handling: here, errors are considered fatal
+*/
 void setup_binary(char **argv)
 {
     g_pid = fork();
@@ -48,12 +53,7 @@ int wait_program(int step)
 {
     int wstatus;
 
-    if (waitpid(g_pid, &wstatus, 0) == -1)
-    {
-        warn("waitpid failed");
-
-        return 0;
-    }
+    my_wait(&wstatus);
 
     if (WIFSTOPPED(wstatus))
     {
@@ -123,8 +123,7 @@ int single_step(void)
         toggle_breakpoint(bp);
     }
 
-    if (ptrace(PTRACE_SINGLESTEP, g_pid, NULL, g_signum) == -1)
-        goto error;
+    my_ptrace(PTRACE_SINGLESTEP, NULL, (void *) g_signum);
 
     g_signum = 0;
 
@@ -134,11 +133,6 @@ int single_step(void)
         toggle_breakpoint(bp);
 
     return ret;
-
-error:
-    warn("ptrace failed");
-
-    return 0;
 }
 
 void continue_execution(void)
@@ -148,15 +142,9 @@ void continue_execution(void)
     if (is_breakpoint(addr) && !single_step())
         return;
 
-    if (ptrace(PTRACE_CONT, g_pid, NULL, g_signum) == -1)
-        goto error;
+    my_ptrace(PTRACE_CONT, NULL, (void *) g_signum);
 
     g_signum = 0;
 
     wait_program(0);
-
-    return;
-
-error:
-    warn("ptrace failed");
 }

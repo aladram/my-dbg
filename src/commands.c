@@ -6,6 +6,8 @@
 #include <string.h>
 
 #include "array_utils.h"
+#include "errors.h"
+#include "exceptions.h"
 #include "string_utils.h"
 
 extern struct my_cmd __start_cmds[];
@@ -52,8 +54,26 @@ void run_command(char *name, char **args)
 {
     struct my_cmd *cmd = get_command(name);
 
-    if (cmd)
+    if (!cmd)
+        return;
+
+    try
+    {
         (cmd->function)(array_length(args), args);
+    }
+    catch (PtraceException)
+    {
+        ptrace_error();
+    }
+    catch (WaitException)
+    {
+        wait_error();
+    }
+    catch (ScanfException)
+    {
+        sscanf_error();
+    }
+    etry;
 }
 
 static void print_help(struct my_cmd *cmd)

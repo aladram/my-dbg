@@ -32,10 +32,27 @@ void delete_env(void)
     free(l);
 }
 
+#define CASE_EX_NAME(Ex) case Ex: \
+                             return #Ex;
+
+static char *exception_name(enum my_exception ex)
+{
+    switch (ex)
+    {
+    CASE_EX_NAME(None);
+    CASE_EX_NAME(Exception);
+    CASE_EX_NAME(PtraceException);
+    CASE_EX_NAME(WaitException);
+    CASE_EX_NAME(ScanfException);
+    }
+
+    return "UnknownException";
+}
+
 void throw_exception(enum my_exception ex)
 {
     if (!list)
-        errx(1, "Uncatched exception %d", ex);
+        errx(1, "Uncatched exception %s", exception_name(ex));
 
     longjmp(*list->env, ex);
 }

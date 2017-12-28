@@ -17,9 +17,6 @@ static void cmd_next_instr(size_t argc, char **argv)
 
     size_t rip = get_register(MY_REG_RIP);
 
-    if (!rip)
-        return;
-
     struct my_instr *instr = get_current_instruction();
 
     if (!instr)
@@ -36,9 +33,6 @@ static void cmd_next_instr(size_t argc, char **argv)
         single_step();
 
     rip = get_register(MY_REG_RIP);
-
-    if (!rip)
-        return;
 
     printf("Stepped to %p\n", (void *) rip);
 }
