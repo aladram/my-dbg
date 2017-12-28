@@ -26,6 +26,7 @@ array_utils.c \
 string_utils.c \
 memory_utils.c \
 format_utils.c \
+exceptions.c \
 cmd_quit.c \
 cmd_info_regs.c \
 cmd_info_memory.c \
@@ -41,6 +42,7 @@ breakpoints.c \
 registers.c \
 memory.c \
 mem_mappings.c \
+errors.c \
 libunwind_wrapper.c \
 capstone_wrapper.c
 

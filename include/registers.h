@@ -35,7 +35,7 @@ enum my_reg
     MY_REG_GS_BASE
 };
 
-int get_registers(struct user_regs_struct *regs);
+void get_registers(struct user_regs_struct *regs);
 
 size_t get_register(enum my_reg reg);
 

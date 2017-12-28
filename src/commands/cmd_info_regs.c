@@ -5,6 +5,8 @@
 
 #include "binary.h"
 #include "commands.h"
+#include "errors.h"
+#include "exceptions.h"
 #include "registers.h"
 
 static void print_register(char *name, unsigned long long int reg)
@@ -53,8 +55,17 @@ static void cmd_info_regs(size_t argc, char **argv)
 
     struct user_regs_struct regs;
 
-    if (get_registers(&regs))
+    try
+    {
+        get_registers(&regs);
+
         print_registers(&regs);
+    }
+    catch (TraceException)
+    {
+        ptrace_error();
+    }
+    etry;
 }
 
 register_command(info_regs,

@@ -8,6 +8,7 @@
 
 #include "binary.h"
 #include "commands.h"
+#include "exceptions.h"
 
 
 #define CASE_REG(RegUp, RegLow) case RegUp: \
@@ -50,24 +51,17 @@ static size_t *get_register_internal(struct user_regs_struct *regs,
     return 0;
 }
 
-int get_registers(struct user_regs_struct *regs)
+void get_registers(struct user_regs_struct *regs)
 {
     if (ptrace(PTRACE_GETREGS, g_pid, NULL, regs) == -1)
-    {
-        warn("ptrace failed");
-
-        return 0;
-    }
-
-    return 1;
+        throw(TraceException);
 }
 
 size_t get_register(enum my_reg reg)
 {
     struct user_regs_struct regs;
 
-    if (!get_registers(&regs))
-        return 0;
+    get_registers(&regs);
 
     return *get_register_internal(&regs, reg);
 }
@@ -76,8 +70,7 @@ void set_register(enum my_reg reg, size_t value)
 {
     struct user_regs_struct regs;
 
-    if (!get_registers(&regs))
-        return;
+    get_registers(&regs);
 
     size_t *reg_ptr = get_register_internal(&regs, reg);
 
