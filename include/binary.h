@@ -13,4 +13,6 @@ int wait_program(int step);
 
 int single_step(void);
 
+void continue_execution(void);
+
 #endif /* BINARY_H */

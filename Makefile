@@ -35,12 +35,14 @@ cmd_step_instr.c \
 cmd_examine.c \
 cmd_backtrace.c \
 cmd_tbreak.c \
+cmd_next_instr.c \
 binary.c \
 breakpoints.c \
 registers.c \
 memory.c \
 mem_mappings.c \
-libunwind_wrapper.c
+libunwind_wrapper.c \
+capstone_wrapper.c
 
 OBJS = $(FILES:%.c=%.o)
 

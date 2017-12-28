@@ -72,6 +72,9 @@ int wait_program(int step)
         {
             struct my_bp *bp = get_breakpoint(addr);
 
+            if (bp->temp)
+                toggle_breakpoint(bp);
+
             printf("Breakpoint %zu at %p\n", bp->id, addr);
 
             set_register(MY_REG_RIP, (size_t) addr);
@@ -136,4 +139,24 @@ error:
     warn("ptrace failed");
 
     return 0;
+}
+
+void continue_execution(void)
+{
+    void *addr = (void *) get_register(MY_REG_RIP);
+
+    if (is_breakpoint(addr) && !single_step())
+        return;
+
+    if (ptrace(PTRACE_CONT, g_pid, NULL, g_signum) == -1)
+        goto error;
+
+    g_signum = 0;
+
+    wait_program(0);
+
+    return;
+
+error:
+    warn("ptrace failed");
 }
