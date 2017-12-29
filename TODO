@@ -1,5 +1,6 @@
 Features:
 * Add aliases to commands
+* Test attach (permission denied at school)
 
 Clean:
 * Test my-dbg with optimized binaries

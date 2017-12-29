@@ -1,9 +1,9 @@
 #include "my-dbg.h"
 
-#include <err.h>
 #include <stdio.h>
 #include <readline/history.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "binary.h"
 #include "commands.h"
@@ -12,14 +12,26 @@
 
 int g_quit = 0;
 
+void setup_modules(void)
+{
+    init_libunwind();
+}
+
 int main(int argc, char **argv)
 {
-    if (argc <= 1)
-        errx(1, "Usage: %s <path to binary> [arguments ...]", argv[0]);
+    if (argc >= 2 && !strcmp(argv[1], "-h"))
+    {
+        printf("Usage: %s <path to binary> [arguments ...]\n", argv[0]);
 
-    setup_binary(argv + 1);
+        return 0;
+    }
 
-    init_libunwind();
+    if (argc >= 2)
+    {
+        setup_binary(argv + 1);
+
+        setup_modules();
+    }
 
     history_word_delimiters = " \t";
 

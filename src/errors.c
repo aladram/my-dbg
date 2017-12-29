@@ -3,9 +3,11 @@
 #include <err.h>
 #include <errno.h>
 
+#include "binary.h"
+
 void ptrace_error(void)
 {
-    if (errno == ESRCH)
+    if (errno == ESRCH && g_pid)
         err(1, "ptrace fatal error");
 
     warn("ptrace error");

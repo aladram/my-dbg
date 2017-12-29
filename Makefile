@@ -37,6 +37,7 @@ cmd_examine.c \
 cmd_backtrace.c \
 cmd_tbreak.c \
 cmd_next_instr.c \
+cmd_attach.c \
 binary.c \
 breakpoints.c \
 registers.c \

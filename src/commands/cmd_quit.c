@@ -21,4 +21,4 @@ static void cmd_quit(size_t argc, char **argv)
 register_command(quit,
                  cmd_quit,
                  "Exit my-dbg",
-                 "exit");
+                 "quit");
