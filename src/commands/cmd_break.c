@@ -15,7 +15,7 @@ static void cmd_break(size_t argc, char **argv)
 {
     if (argc <= 1)
     {
-        warn("No address specified");
+        warnx("No address specified");
 
         return;
     }
@@ -27,7 +27,8 @@ static void cmd_break(size_t argc, char **argv)
     printf("Breakpoint %zu placed at %p\n", nb, addr);
 }
 
-register_command(break,
-                 cmd_break,
-                 "Set a breakpoint at specified addresses",
-                 "break <address>");
+register_command_with_alias(break,
+                            cmd_break,
+                            "Set a breakpoint at specified addresses",
+                            "break <address>",
+                            "b");

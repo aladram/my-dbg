@@ -11,17 +11,23 @@ struct my_cmd {
     void (*function)(size_t, char **);
 
     const char *usage;
+
+    const char *alias;
 };
 
-#define register_command(Name, Function, Description, Usage) \
+#define register_command_with_alias(Name, Function, Description, Usage, Alias) \
     static struct my_cmd __cmd_ ## Name \
 __attribute__ ((section("cmds"), used)) = \
 { \
     .name = #Name, \
     .description = Description, \
     .function = Function, \
-    .usage = Usage \
+    .usage = Usage, \
+    .alias = Alias \
 }
+
+#define register_command(Name, Function, Description, Usage) \
+        register_command_with_alias(Name, Function, Description, Usage, NULL)
 
 void run_command(char *name, char **args);
 

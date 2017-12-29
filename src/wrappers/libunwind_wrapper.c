@@ -197,7 +197,9 @@ void print_backtrace(void)
 
 void destroy_libunwind(void)
 {
-    _UPT_destroy(info);
+    if (info)
+        _UPT_destroy(info);
 
-    unw_destroy_addr_space(addr_space);
+    if (addr_space)
+        unw_destroy_addr_space(addr_space);
 }

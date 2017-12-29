@@ -14,6 +14,30 @@ extern struct my_cmd __start_cmds[];
 
 extern struct my_cmd __stop_cmds[];
 
+size_t my_size(size_t size)
+{
+    if (!size)
+        return 0;
+
+    size_t ret = 0;
+
+    int no_two_power = 0;
+
+    while (size > 1)
+    {
+        ++ret;
+
+        if (size & 1)
+            no_two_power = 1;
+
+        size >>= 1;
+    }
+
+    return 1 << (ret + no_two_power);
+}
+
+#define my_sizeof(Type) my_size(sizeof(Type))
+
 static struct my_cmd *get_command(char *name)
 {
     struct my_cmd *cmd_matched = NULL;
@@ -22,12 +46,26 @@ static struct my_cmd *get_command(char *name)
 
     size_t end = (size_t) __stop_cmds;
 
-    for (size_t i = 0; i < (end - start) / sizeof(struct my_cmd); ++i)
+    size_t size = my_sizeof(struct my_cmd);
+
+    size_t total_size = (end - start) / size + (size != sizeof(struct my_cmd));
+
+    for (size_t i = 0; i < total_size; ++i)
     {
-        struct my_cmd *cmd = __start_cmds + i;
+        struct my_cmd *cmd = (struct my_cmd *)
+                             ((char *) __start_cmds + i * size);
 
         if (!strcmp(name, cmd->name))
             return cmd;
+
+        if (cmd->alias && !strcmp(name, cmd->alias))
+            return cmd;
+    }
+
+    for (size_t i = 0; i < total_size; ++i)
+    {
+        struct my_cmd *cmd = (struct my_cmd *)
+                             ((char *) __start_cmds + i * size);
 
         if (starts_with(cmd->name, name))
         {
@@ -116,9 +154,14 @@ static void cmd_help(size_t argc, char **argv)
 
     size_t end = (size_t) __stop_cmds;
 
-    for (size_t i = 0; i < (end - start) / sizeof(struct my_cmd); ++i)
+    size_t size = my_sizeof(struct my_cmd);
+
+    size_t total_size = (end - start) / size + (size != sizeof(struct my_cmd));
+
+    for (size_t i = 0; i < total_size; ++i)
     {
-        struct my_cmd *cmd = __start_cmds + i;
+        struct my_cmd *cmd = (struct my_cmd *)
+                             ((char *) __start_cmds + i * size);
 
         print_help(cmd);
     }

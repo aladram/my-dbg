@@ -21,7 +21,7 @@ int main(int argc, char **argv)
 {
     if (argc >= 2 && !strcmp(argv[1], "-h"))
     {
-        printf("Usage: %s <path to binary> [arguments ...]\n", argv[0]);
+        printf("Usage: %s [program] [arguments ...]\n", argv[0]);
 
         return 0;
     }

@@ -12,7 +12,7 @@ static void cmd_quit(size_t argc, char **argv)
 
     (void)argv;
 
-    if (ptrace(PTRACE_KILL, g_pid, NULL, NULL) == -1)
+    if (g_pid && ptrace(PTRACE_KILL, g_pid, NULL, NULL) == -1)
         warn("ptrace failed");
 
     g_quit = 1;
