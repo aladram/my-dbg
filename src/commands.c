@@ -73,6 +73,14 @@ void run_command(char *name, char **args)
     {
         sscanf_error();
     }
+    catch (PrintfException)
+    {
+        printf_error();
+    }
+    catch (IOException)
+    {
+        io_error();
+    }
     etry;
 }
 

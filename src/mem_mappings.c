@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include "binary.h"
+#include "exceptions.h"
 #include "memory_utils.h"
 #include "my_limits.h"
 
@@ -42,7 +43,7 @@ static size_t add_mem_mapping(struct my_mem_mapping ***mappings,
                      mapping->objfile);
 
     if (ret != 10 && ret != 11)
-        return 0;
+        throw(ScanfException);
 
     return length;
 }
@@ -68,46 +69,48 @@ static struct my_mem_mapping **get_mem_mappings_file(FILE *f)
 
     size_t length = 0;
 
-    while (1)
+    char *str = NULL;
+
+    enum my_exception my_ex;
+
+    try
     {
-        char *str = NULL;
-
-        size_t len = 0;
-
-        errno = 0;
-
-        if (getline(&str, &len, f) == -1)
+        while (1)
         {
-            if (errno)
-            {
-                warn("getline failed");
+            size_t len = 0;
 
-                goto error;
+            errno = 0;
+
+            if (getline(&str, &len, f) == -1)
+            {
+                if (errno)
+                    throw(IOException);
+
+                free(str);
+
+                break;
             }
 
-            free(str);
+            length = add_mem_mapping(&mappings, str, length);
 
-            break;
+            free(str);
         }
 
-        length = add_mem_mapping(&mappings, str, length);
+        add_mem_mapping(&mappings, NULL, length);
 
+        return mappings;
+    }
+    catch (ScanfException, IOException)
+    {
         free(str);
 
-        if (length == 0)
-        {
-            warn("sscanf failed");
+        free_mem_mappings(mappings);
 
-            goto error;
-        }
+        my_ex = ex;
     }
+    etry;
 
-    add_mem_mapping(&mappings, NULL, length);
-
-    return mappings;
-
-error:
-    free_mem_mappings(mappings);
+    throw(my_ex);
 
     return NULL;
 }

@@ -44,6 +44,8 @@ static char *exception_name(enum my_exception ex)
     CASE_EX_NAME(PtraceException);
     CASE_EX_NAME(WaitException);
     CASE_EX_NAME(ScanfException);
+    CASE_EX_NAME(PrintfException);
+    CASE_EX_NAME(IOException);
     }
 
     return "UnknownException";

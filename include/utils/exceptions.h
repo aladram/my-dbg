@@ -2,6 +2,9 @@
  * http://www.di.unipi.it/~nids/docs/longjump_try_trow_catch.html
  *
  * Major feature added is env stack (that allows to nest try/catch statements)
+ * Other features added are:
+ *   - Multi catch
+ *   - Enum with exceptions
  */
 
 /* Copyright (C) 2009-2015 Francesco Nidito 
@@ -41,9 +44,11 @@ enum my_exception
 {
     None            = 0,
     Exception       = 1,
-    PtraceException  = 2,
+    PtraceException = 2,
     WaitException   = 3,
-    ScanfException  = 4
+    ScanfException  = 4,
+    PrintfException = 5,
+    IOException     = 6
 };
 
 struct my_env_list
@@ -60,10 +65,18 @@ void delete_env(void);
 void throw_exception(enum my_exception ex);
 
 # define try do { jmp_buf ex_buf__; new_env(&ex_buf__); \
-                 switch( setjmp(ex_buf__) ) { case 0: while(1) {
-# define catch(x) break; case x:
+                  enum my_exception ex = setjmp(ex_buf__); \
+                 switch((int) ex) { case 0: while(1) {
+
+# define GET_MACRO(_1,_2,NAME,...) NAME
+# define S_CATCH(x) break; case x:
+# define D_CATCH(x, y) break; case x: case y:
+# define catch(...) GET_MACRO(__VA_ARGS__, D_CATCH, S_CATCH, X)(__VA_ARGS__)
+
 # define finally break; } default: {
+
 # define etry break; } }; delete_env(); } while(0)
+
 # define throw(x) throw_exception(x)
 
 #endif /* EXCEPTIONS_H */

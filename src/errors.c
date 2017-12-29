@@ -20,3 +20,13 @@ void sscanf_error(void)
 {
     warnx("sscanf error");
 }
+
+void printf_error(void)
+{
+    warnx("printf error");
+}
+
+void io_error(void)
+{
+    warnx("IO error");
+}
