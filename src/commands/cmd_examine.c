@@ -168,6 +168,7 @@ static void cmd_examine(size_t argc, char **argv)
 }
 
 register_command(examine,
+                 PROGRAM_REQUIRED,
                  cmd_examine,
                  "Examine memory at given address",
                  "examine <format> <size> <start_addr>");

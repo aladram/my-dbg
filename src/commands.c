@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "array_utils.h"
+#include "binary.h"
 #include "errors.h"
 #include "exceptions.h"
 #include "string_utils.h"
@@ -95,6 +96,13 @@ void run_command(char *name, char **args)
     if (!cmd)
         return;
 
+    if (!g_pid && cmd->type == PROGRAM_REQUIRED)
+    {
+        warnx("This command requires a running program to be executed");
+
+        return;
+    }
+
     try
     {
         (cmd->function)(array_length(args), args);
@@ -168,6 +176,7 @@ static void cmd_help(size_t argc, char **argv)
 }
 
 register_command(help,
+                 NO_PROGRAM_REQUIRED,
                  cmd_help,
                  "Display this help message, or specified commands help",
                  "help [command ...]");

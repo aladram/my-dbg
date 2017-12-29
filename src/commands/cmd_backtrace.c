@@ -13,6 +13,7 @@ static void cmd_backtrace(size_t argc, char **argv)
 }
 
 register_command(backtrace,
+                 PROGRAM_REQUIRED,
                  cmd_backtrace,
                  "Print backtrace",
                  "backtrace");

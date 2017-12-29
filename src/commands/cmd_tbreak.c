@@ -28,6 +28,7 @@ static void cmd_tbreak(size_t argc, char **argv)
 }
 
 register_command(tbreak,
+                 PROGRAM_REQUIRED,
                  cmd_tbreak,
                  "Set a temporary breakpoint at specified addresses",
                  "tbreak <address>");

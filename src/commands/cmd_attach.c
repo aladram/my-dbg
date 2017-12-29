@@ -80,6 +80,7 @@ static void cmd_attach(size_t argc, char **argv)
 }
 
 register_command(attach,
+                 NO_PROGRAM_REQUIRED,
                  cmd_attach,
                  "Attach process identified by the given process ID",
                  "attach <pid>");

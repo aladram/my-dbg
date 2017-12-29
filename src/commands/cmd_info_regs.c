@@ -59,6 +59,7 @@ static void cmd_info_regs(size_t argc, char **argv)
 }
 
 register_command(info_regs,
+                 PROGRAM_REQUIRED,
                  cmd_info_regs,
                  "Display registers",
                  "info_regs");

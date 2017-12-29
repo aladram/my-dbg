@@ -16,6 +16,7 @@ static void cmd_continue(size_t argc, char **argv)
 }
 
 register_command(continue,
+                 PROGRAM_REQUIRED,
                  cmd_continue,
                  "Continue program execution",
                  "continue");

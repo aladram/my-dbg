@@ -43,6 +43,7 @@ static void cmd_info_memory(size_t argc, char **argv)
 }
 
 register_command(info_memory,
+                 PROGRAM_REQUIRED,
                  cmd_info_memory,
                  "Display mapped memory regions",
                  "info_memory");

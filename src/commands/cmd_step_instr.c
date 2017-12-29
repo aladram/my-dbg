@@ -19,6 +19,7 @@ static void cmd_step_instr(size_t argc, char **argv)
 }
 
 register_command(step_instr,
+                 PROGRAM_REQUIRED,
                  cmd_step_instr,
                  "Step one instruction exactly",
                  "step_instr");

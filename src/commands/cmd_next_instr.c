@@ -38,6 +38,7 @@ static void cmd_next_instr(size_t argc, char **argv)
 }
 
 register_command(next_instr,
+                 PROGRAM_REQUIRED,
                  cmd_next_instr,
                  "Step one instruction, but proceed through calls",
                  "next_instr");

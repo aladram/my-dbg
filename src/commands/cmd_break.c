@@ -28,6 +28,7 @@ static void cmd_break(size_t argc, char **argv)
 }
 
 register_command_with_alias(break,
+                            PROGRAM_REQUIRED,
                             cmd_break,
                             "Set a breakpoint at specified addresses",
                             "break <address>",
