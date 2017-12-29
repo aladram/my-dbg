@@ -98,6 +98,8 @@ static struct my_mem_mapping **get_mem_mappings_file(FILE *f)
 
         add_mem_mapping(&mappings, NULL, length);
 
+        delete_env();
+
         return mappings;
     }
     catch (ScanfException, IOException)
@@ -120,11 +122,7 @@ struct my_mem_mapping **get_mem_mappings(void)
     char path[32];
 
     if (sprintf(path, "/proc/%d/maps", g_pid) <= 11)
-    {
-        warn("sprintf failed");
-
-        return NULL;
-    }
+        throw(PrintfException);
 
     FILE *f = fopen(path, "re");
 
@@ -132,7 +130,7 @@ struct my_mem_mapping **get_mem_mappings(void)
     {
         warn("%s", path);
 
-        return NULL;
+        throw(IOException);
     }
 
     struct my_mem_mapping **mappings = get_mem_mappings_file(f);
@@ -141,7 +139,7 @@ struct my_mem_mapping **get_mem_mappings(void)
     {
         warn("%s", path);
 
-        return NULL;
+        throw(IOException);
     }
 
     return mappings;

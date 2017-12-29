@@ -156,21 +156,15 @@ static void cmd_examine(size_t argc, char **argv)
         return;
     }
 
-    size_t size;
+    size_t size = read_size(argv[2]);
 
-    if (!read_size(argv[2], &size))
-        return;
-
-    void *addr;
-
-    if (!read_address(argv[3], &addr))
-        return;
+    void *addr = read_address(argv[3]);
 
     if (size)
         examine_memory(argv[1][0], addr, size);
 
     else
-        warnx("Non-null size required");
+        warnx("Nothing to examine (null size)");
 }
 
 register_command(examine,

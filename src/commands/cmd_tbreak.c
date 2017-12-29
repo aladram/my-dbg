@@ -20,10 +20,7 @@ static void cmd_tbreak(size_t argc, char **argv)
         return;
     }
 
-    void *addr;
-    
-    if (!read_address(argv[1], &addr))
-        return;
+    void *addr = read_address(argv[1]);
 
     size_t nb = place_breakpoint(addr, 1);
 

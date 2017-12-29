@@ -9,17 +9,14 @@
 #include <unistd.h>
 
 #include "binary.h"
+#include "exceptions.h"
 
 char *read_memory(void *addr, size_t size)
 {
     char mem_path[32];
 
     if (sprintf(mem_path, "/proc/%d/mem", g_pid) <= 10)
-    {
-        warn("sprintf failed");
-
-        return NULL;
-    }
+        throw(PrintfException);
 
     int fd = open(mem_path, O_RDONLY);
 

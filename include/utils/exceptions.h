@@ -48,7 +48,8 @@ enum my_exception
     WaitException   = 3,
     ScanfException  = 4,
     PrintfException = 5,
-    IOException     = 6
+    IOException     = 6,
+    AllocException  = 7
 };
 
 struct my_env_list
@@ -64,6 +65,8 @@ void delete_env(void);
 
 void throw_exception(enum my_exception ex);
 
+
+// Cast to prevent compiler errors about incomplete switch cases
 # define try do { jmp_buf ex_buf__; new_env(&ex_buf__); \
                   enum my_exception ex = setjmp(ex_buf__); \
                  switch((int) ex) { case 0: while(1) {

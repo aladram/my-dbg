@@ -11,4 +11,6 @@ void printf_error(void);
 
 void io_error(void);
 
+void alloc_error(void);
+
 #endif /* ERRORS_H */

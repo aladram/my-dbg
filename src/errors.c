@@ -30,3 +30,8 @@ void io_error(void)
 {
     warnx("IO error");
 }
+
+void alloc_error(void)
+{
+    warn("alloc error");
+}

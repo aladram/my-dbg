@@ -3,8 +3,8 @@
 
 # include <stddef.h>
 
-int read_address(char *str, void **addr);
+void *read_address(char *str);
 
-int read_size(char *str, size_t *size);
+size_t read_size(char *str);
 
 #endif /* FORMAT_UTILS_H */

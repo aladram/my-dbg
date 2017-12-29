@@ -1,2 +1,6 @@
+Features:
 * Add aliases to commands
+
+Clean:
 * Test my-dbg with optimized binaries
+* Check most error cases to check if exceptions are trigerred correctly

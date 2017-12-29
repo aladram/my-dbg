@@ -81,6 +81,14 @@ void run_command(char *name, char **args)
     {
         io_error();
     }
+    catch (AllocException)
+    {
+        alloc_error();
+    }
+    catch (Exception)
+    {
+        warnx("An error occured while trying to execute command %s", cmd->name);
+    }
     etry;
 }
 
