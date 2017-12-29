@@ -49,7 +49,8 @@ enum my_exception
     ScanfException  = 4,
     PrintfException = 5,
     IOException     = 6,
-    AllocException  = 7
+    AllocException  = 7,
+    ELFException    = 8
 };
 
 struct my_env_list

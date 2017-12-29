@@ -13,4 +13,6 @@ void io_error(void);
 
 void alloc_error(void);
 
+void elf_error(void);
+
 #endif /* ERRORS_H */

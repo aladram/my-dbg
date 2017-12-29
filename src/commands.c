@@ -131,6 +131,10 @@ void run_command(char *name, char **args)
     {
         alloc_error();
     }
+    catch (ELFException)
+    {
+        elf_error();
+    }
     catch (Exception)
     {
         warnx("An error occured while trying to execute command %s", cmd->name);

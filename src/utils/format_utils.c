@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "binary.h"
 #include "exceptions.h"
+#include "my_limits.h"
 #include "string_utils.h"
 
 void *read_address(char *str)
@@ -51,4 +53,14 @@ size_t read_size(char *str)
     throw(Exception);
 
     return 0;
+}
+
+char *get_proc_path(char *name)
+{
+    static char path[MY_PATH_MAX];
+
+    if (sprintf(path, "/proc/%d/%s", g_pid, name) <= 7 + (int) strlen(name))
+        throw(PrintfException);
+
+    return path;
 }

@@ -7,6 +7,7 @@
 
 #include "binary.h"
 #include "exceptions.h"
+#include "format_utils.h"
 #include "memory_utils.h"
 #include "my_limits.h"
 
@@ -119,10 +120,7 @@ static struct my_mem_mapping **get_mem_mappings_file(FILE *f)
 
 struct my_mem_mapping **get_mem_mappings(void)
 {
-    char path[32];
-
-    if (sprintf(path, "/proc/%d/maps", g_pid) <= 11)
-        throw(PrintfException);
+    char *path = get_proc_path("maps");
 
     FILE *f = fopen(path, "re");
 

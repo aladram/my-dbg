@@ -37,3 +37,8 @@ void alloc_error(void)
 {
     warn("alloc error");
 }
+
+void elf_error(void)
+{
+    warnx("elf error");
+}

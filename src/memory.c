@@ -2,21 +2,17 @@
 
 #include <err.h>
 #include <fcntl.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include "binary.h"
-#include "exceptions.h"
+#include "format_utils.h"
 
 char *read_memory(void *addr, size_t size)
 {
-    char mem_path[32];
-
-    if (sprintf(mem_path, "/proc/%d/mem", g_pid) <= 10)
-        throw(PrintfException);
+    char *mem_path = get_proc_path("mem");
 
     int fd = open(mem_path, O_RDONLY);
 
