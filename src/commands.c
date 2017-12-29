@@ -15,7 +15,7 @@ extern struct my_cmd __start_cmds[];
 
 extern struct my_cmd __stop_cmds[];
 
-size_t my_size(size_t size)
+static size_t my_size(size_t size)
 {
     if (!size)
         return 0;
