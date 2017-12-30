@@ -1,22 +1,16 @@
 #include "file_utils.h"
 
-#include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include "exceptions.h"
 
-size_t file_size(FILE *f)
+size_t file_size(char *path)
 {
-    int fd = fileno(f);
-
-    if (fd == -1)
-        throw(IOException);
-
     struct stat sb;
 
-    if (fstat(fd, &sb) == -1)
+    if (stat(path, &sb) == -1)
         throw(IOException);
 
     return (size_t) sb.st_size;

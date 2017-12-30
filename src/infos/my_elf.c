@@ -2,29 +2,53 @@
 
 #include <elf.h>
 #include <err.h>
+#include <fcntl.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "exceptions.h"
 #include "file_utils.h"
 #include "format_utils.h"
 #include "memory_utils.h"
 
-static FILE *open_elf(void)
+static size_t elf_size(void)
 {
     char *path = get_proc_path("exe");
 
-    FILE *f = fopen(path, "r");
+    size_t size = file_size(path);
 
-    if (!f)
+    if (size < sizeof(Elf64_Ehdr))
+        throw(ELFException);
+
+    return size;
+}
+
+static void *open_elf(size_t size)
+{
+    char *path = get_proc_path("exe");
+
+    int fd = open(path, O_RDONLY);
+
+    if (fd == -1)
     {
         warn("%s", path);
 
         throw(IOException);
     }
 
-    return f;
+    void *elf = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+
+    if (elf == MAP_FAILED)
+    {
+        warn("%s", path);
+
+        throw(IOException);
+    }
+
+    return elf;
 }
 
 static void check_header_integrity(Elf64_Ehdr *header)
@@ -37,56 +61,91 @@ static void check_header_integrity(Elf64_Ehdr *header)
         throw(ELFException);
 }
 
-/*
-* File cursor should be at 0 before calling this function
-*/
-static Elf64_Ehdr *elf_header(FILE *f)
+static Elf64_Ehdr *elf_header(void *elf)
 {
-    Elf64_Ehdr *header = my_malloc(sizeof(*header));
-
-    if (file_size(f) < sizeof(*header))
-        throw(ELFException);
-
-    if (fread(header, sizeof(*header), 1, f) != 1)
-        throw(IOException);
+    Elf64_Ehdr *header = elf;
 
     check_header_integrity(header);
 
     return header;
 }
 
-static Elf64_Shdr *elf_sections_header(FILE *f, Elf64_Ehdr *header)
+static Elf64_Shdr *elf_sections_header(char *elf, Elf64_Ehdr *header)
 {
-    uint16_t shnum = header->e_shnum;
-
     /*
     * No use of header->e_shentsize for now: only supporting 64bit binaries,
     * where header->e_shentsize = 64 bytes
     *
     * so... TODO: support 32bit binaries
     */
-    Elf64_Shdr *s_header = my_malloc(sizeof(*s_header) * shnum);
-
-    if (fseek(f, header->e_shoff, SEEK_SET) == -1)
-        throw(IOException);
-
-    if (fread(s_header, sizeof(*s_header), shnum, f) != shnum)
-        throw(ELFException);
-
-    return s_header;
+    return (Elf64_Shdr *) (elf + header->e_shoff);
 }
 
+static Elf64_Sym *elf_section_symbols(char *elf, Elf64_Shdr *s_header)
+{
+    return (Elf64_Sym *) (elf + s_header->sh_offset);
+}
+
+static char *elf_string_section(char *elf, Elf64_Shdr *s_headers,
+                                size_t index)
+{
+    Elf64_Shdr *str_header = s_headers + index;
+
+    return elf + str_header->sh_offset;
+}
+
+static char *elf_symbol_name(char *elf, Elf64_Shdr *s_headers,
+                             Elf64_Shdr *sym_header, Elf64_Sym *sym)
+{
+    return (elf_string_section(elf, s_headers, sym_header->sh_link)
+            + sym->st_name);
+}
+
+
+/*
+* If ELF is invalid, behavior is undefined (it may throw an ELFException
+*                                           or... segfault)
+*/
 void *get_address(char *function)
 {
-    FILE *f = open_elf();
+    size_t size = elf_size();
 
-    Elf64_Ehdr *header = elf_header(f);
+    void *elf = open_elf(size);
 
-    Elf64_Shdr *s_header = elf_sections_header(f, header);
+    Elf64_Ehdr *header = elf_header(elf);
 
-    (void)s_header;
+    Elf64_Shdr *s_headers = elf_sections_header(elf, header);
 
-    (void)function;
+    void *addr = NULL;
 
-    return NULL;
+    for (size_t i = 0; i < header->e_shnum; ++i)
+    {
+        Elf64_Shdr *sh = s_headers + i;
+
+        if (sh->sh_type != SHT_SYMTAB && sh->sh_type != SHT_DYNSYM)
+            continue;
+
+        Elf64_Sym *symbols = elf_section_symbols(elf, sh);
+
+        // cf. line 65 (same here with sh->sh_entsize)
+        size_t syms_nb = sh->sh_size / sizeof(Elf64_Sym);
+
+        for (size_t j = 0; j < syms_nb; ++j)
+        {
+            Elf64_Sym *sym = symbols + j;
+
+            if (!strcmp(elf_symbol_name(elf, s_headers, sh, sym), function))
+            {
+                addr = (void *) sym->st_value;
+
+                goto ret;
+            }
+        }
+    }
+
+ret:
+    if (munmap(elf, size))
+        throw(IOException);
+
+    return addr;
 }

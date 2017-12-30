@@ -1,8 +1,8 @@
 #ifndef FILE_UTILS_H
 # define FILE_UTILS_H
 
-# include <stdio.h>
+# include <stddef.h>
 
-size_t file_size(FILE *f);
+size_t file_size(char *path);
 
 #endif /* FILE_UTILS_H */

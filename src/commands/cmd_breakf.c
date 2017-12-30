@@ -17,6 +17,13 @@ static void cmd_breakf(size_t argc, char **argv)
 
     void *addr = get_address(argv[1]);
 
+    if (!addr)
+    {
+        warnx("Symbol not found");
+
+        return;
+    }
+
     size_t nb = place_breakpoint(addr, 0);
 
     printf("Breakpoint %zu placed at %p\n", nb, addr);
