@@ -12,8 +12,9 @@ static void cmd_backtrace(size_t argc, char **argv)
     print_backtrace();
 }
 
-register_command(backtrace,
-                 PROGRAM_REQUIRED,
-                 cmd_backtrace,
-                 "Print backtrace",
-                 "backtrace");
+register_command_with_alias(backtrace,
+                            PROGRAM_REQUIRED,
+                            cmd_backtrace,
+                            "Print backtrace",
+                            "backtrace",
+                            "bt");
