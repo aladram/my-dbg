@@ -4,6 +4,7 @@
 #include <err.h>
 #include <fcntl.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -101,23 +102,9 @@ static char *elf_symbol_name(char *elf, Elf64_Shdr *s_headers,
             + sym->st_name);
 }
 
-
-/*
-* If ELF is invalid, behavior is undefined (it may throw an ELFException
-*                                           or... segfault)
-*/
-void *get_address(char *function)
+void *get_address_exec(char *function, void *elf,
+                       Elf64_Ehdr *header, Elf64_Shdr *s_headers)
 {
-    size_t size = elf_size();
-
-    void *elf = open_elf(size);
-
-    Elf64_Ehdr *header = elf_header(elf);
-
-    Elf64_Shdr *s_headers = elf_sections_header(elf, header);
-
-    void *addr = NULL;
-
     for (size_t i = 0; i < header->e_shnum; ++i)
     {
         Elf64_Shdr *sh = s_headers + i;
@@ -135,15 +122,113 @@ void *get_address(char *function)
             Elf64_Sym *sym = symbols + j;
 
             if (!strcmp(elf_symbol_name(elf, s_headers, sh, sym), function))
-            {
-                addr = (void *) sym->st_value;
-
-                goto ret;
-            }
+                return (void *) sym->st_value;
         }
     }
 
-ret:
+    return NULL;
+}
+
+static Elf64_auxv_t *get_auxiliary_vector()
+{
+    FILE *f = fopen(get_proc_path("auxv"), "r");
+
+    if (!f)
+        throw(IOException);
+
+    Elf64_auxv_t *auxv = NULL;
+
+    for (size_t length = 1;; ++length)
+    {
+        auxv = my_realloc(auxv, sizeof(*auxv) * length);
+
+        if (fread(auxv + length - 1, sizeof(*auxv), 1, f) != 1)
+            throw(IOException);
+
+        if (auxv[length - 1].a_type == AT_NULL)
+            break;
+    }
+
+    if (fclose(f) == EOF)
+        throw(IOException);
+
+    return auxv;
+}
+
+
+static Elf64_Phdr *extract_program_headers(Elf64_auxv_t *auxv)
+{
+    for (; auxv->a_type != AT_NULL; ++auxv)
+        if (auxv->a_type == AT_PHDR)
+            return (Elf64_Phdr *) auxv->a_un.a_val;
+
+    throw(ELFException);
+
+    return NULL;
+}
+
+static Elf64_Phdr *get_program_header(Elf64_Ehdr *header, Elf64_Phdr *p_headers,
+                                      Elf64_Word p_type)
+{
+    for (size_t i = 0; i < header->e_phnum; ++i)
+    {
+        Elf64_Phdr *ph = p_headers + i;
+
+        if (ph->p_type == p_type)
+            return ph;
+    }
+
+    throw(ELFException);
+
+    return NULL;
+}
+
+Elf64_Dyn *get_dynamic_section(Elf64_Ehdr *header, Elf64_Phdr *p_headers)
+{
+    Elf64_Phdr *phdr_ph = get_program_header(header, p_headers, PT_PHDR);
+
+    Elf64_Phdr *dyn_ph = get_program_header(header, p_headers, PT_DYNAMIC);
+
+    return (Elf64_Dyn *) ((char *) p_headers
+                          - phdr_ph->p_vaddr + dyn_ph->p_vaddr);
+}
+
+/*
+* If ELF is invalid, behavior is undefined (it may throw an ELFException
+*                                           or... segfault)
+*/
+void *get_address(char *function)
+{
+    size_t size = elf_size();
+
+    void *elf = open_elf(size);
+
+    void *addr = NULL;
+
+    Elf64_Ehdr *header = elf_header(elf);
+
+    Elf64_Shdr *s_headers = elf_sections_header(elf, header);
+
+    if (header->e_type == ET_EXEC)
+        addr = get_address_exec(function, elf, header, s_headers);
+
+    else if (header->e_type == ET_DYN)
+    {
+        Elf64_auxv_t *auxv = get_auxiliary_vector();
+
+        Elf64_Phdr *p_headers = extract_program_headers(auxv);
+
+        Elf64_Dyn *dyn_section = get_dynamic_section(header, p_headers);
+
+        (void) dyn_section;
+
+        //DEBUG
+        return NULL;
+    }
+
+    else
+        throw(ELFException);
+
     if (munmap(elf, size))
         throw(IOException);
 
