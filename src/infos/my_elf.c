@@ -13,6 +13,7 @@
 #include "exceptions.h"
 #include "file_utils.h"
 #include "format_utils.h"
+#include "memory.h"
 #include "memory_utils.h"
 
 static size_t elf_size(void)
@@ -172,7 +173,7 @@ static Elf64_Phdr *get_program_header(Elf64_Ehdr *header, Elf64_Phdr *p_headers,
 {
     for (size_t i = 0; i < header->e_phnum; ++i)
     {
-        Elf64_Phdr *ph = p_headers + i;
+        Elf64_Phdr *ph = (void *) read_memory(p_headers + i, sizeof(*ph));
 
         if (ph->p_type == p_type)
             return ph;
@@ -198,11 +199,19 @@ Elf64_Dyn *get_dynamic_section(Elf64_Ehdr *header, Elf64_Phdr *p_headers,
     return (Elf64_Dyn *) ((char *) base_addr + dyn_ph->p_vaddr);
 }
 
-void *get_dynamic_entry(Elf64_Dyn *dyn_section, Elf64_Sxword d_tag)
+void *get_dynamic_entry(char *base_addr,
+                        Elf64_Dyn *dyn_section, Elf64_Sxword d_tag)
 {
-    for (; dyn_section->d_tag != DT_NULL; ++dyn_section)
-        if (dyn_section->d_tag == d_tag)
-            return (void *) dyn_section->d_un.d_ptr;
+    for (;; ++dyn_section)
+    {
+        Elf64_Dyn *dyn = (void *) read_memory(dyn_section, sizeof(*dyn));
+
+        if (dyn->d_tag == d_tag)
+            return base_addr + dyn->d_un.d_ptr;
+
+        if (dyn->d_tag == DT_NULL)
+            break;
+    }
 
     throw(ELFException);
 
@@ -238,19 +247,22 @@ void *get_address(char *function)
 
         Elf64_Dyn *dyn_section = get_dynamic_section(header, p_headers, base_addr);
 
-        Elf64_Sym *symtab = get_dynamic_entry(dyn_section, DT_SYMTAB);
+        Elf64_Sym *symtab = get_dynamic_entry(base_addr, dyn_section, DT_SYMTAB);
 
-        char *strtab = get_dynamic_entry(dyn_section, DT_STRTAB);
+        char *strtab = get_dynamic_entry(base_addr, dyn_section, DT_STRTAB);
 
         size_t size = (strtab - (char *) symtab) / sizeof(Elf64_Sym);
 
         for (size_t i = 0; i < size; ++i)
         {
-            Elf64_Sym *sym = symtab + i;
+            Elf64_Sym *sym = (void *) read_memory(symtab + i, sizeof(*sym));
 
-            printf("Debug: '%s'\n", strtab + sym->st_name);
+            //HARDCODE
+            char *str = read_memory(strtab + sym->st_name, 16);
 
-            if (!strcmp(strtab + sym->st_name, function))
+            printf("Debug: '%s'\n", str);
+
+            if (!strcmp(str, function))
             {
                 addr = (void *) sym->st_value;
 
