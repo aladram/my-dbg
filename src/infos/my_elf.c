@@ -183,14 +183,30 @@ static Elf64_Phdr *get_program_header(Elf64_Ehdr *header, Elf64_Phdr *p_headers,
     return NULL;
 }
 
-Elf64_Dyn *get_dynamic_section(Elf64_Ehdr *header, Elf64_Phdr *p_headers)
+void *get_base_address(Elf64_Ehdr *header, Elf64_Phdr *p_headers)
 {
     Elf64_Phdr *phdr_ph = get_program_header(header, p_headers, PT_PHDR);
 
+    return (char *) p_headers - phdr_ph->p_vaddr;
+}
+
+Elf64_Dyn *get_dynamic_section(Elf64_Ehdr *header, Elf64_Phdr *p_headers,
+                               void *base_addr)
+{
     Elf64_Phdr *dyn_ph = get_program_header(header, p_headers, PT_DYNAMIC);
 
-    return (Elf64_Dyn *) ((char *) p_headers
-                          - phdr_ph->p_vaddr + dyn_ph->p_vaddr);
+    return (Elf64_Dyn *) ((char *) base_addr + dyn_ph->p_vaddr);
+}
+
+void *get_dynamic_entry(Elf64_Dyn *dyn_section, Elf64_Sxword d_tag)
+{
+    for (; dyn_section->d_tag != DT_NULL; ++dyn_section)
+        if (dyn_section->d_tag == d_tag)
+            return (void *) dyn_section->d_un.d_ptr;
+
+    throw(ELFException);
+
+    return NULL;
 }
 
 /*
@@ -218,12 +234,29 @@ void *get_address(char *function)
 
         Elf64_Phdr *p_headers = extract_program_headers(auxv);
 
-        Elf64_Dyn *dyn_section = get_dynamic_section(header, p_headers);
+        void *base_addr = get_base_address(header, p_headers);
 
-        (void) dyn_section;
+        Elf64_Dyn *dyn_section = get_dynamic_section(header, p_headers, base_addr);
 
-        //DEBUG
-        return NULL;
+        Elf64_Sym *symtab = get_dynamic_entry(dyn_section, DT_SYMTAB);
+
+        char *strtab = get_dynamic_entry(dyn_section, DT_STRTAB);
+
+        size_t size = (strtab - (char *) symtab) / sizeof(Elf64_Sym);
+
+        for (size_t i = 0; i < size; ++i)
+        {
+            Elf64_Sym *sym = symtab + i;
+
+            printf("Debug: '%s'\n", strtab + sym->st_name);
+
+            if (!strcmp(strtab + sym->st_name, function))
+            {
+                addr = (void *) sym->st_value;
+
+                break;
+            }
+        }
     }
 
     else
