@@ -122,6 +122,9 @@ void *get_address_exec(char *function, void *elf,
         {
             Elf64_Sym *sym = symbols + j;
 
+            if (ELF64_ST_TYPE(sym->st_info) != STT_FUNC)
+                continue;
+
             if (!strcmp(elf_symbol_name(elf, s_headers, sh, sym), function))
                 return (void *) sym->st_value;
         }
@@ -245,6 +248,11 @@ void *get_address(char *function)
 
         void *base_addr = get_base_address(header, p_headers);
 
+        void *tmp_addr = get_address_exec(function, elf, header, s_headers);
+
+        if (tmp_addr)
+            return (char *) base_addr + (size_t) tmp_addr;
+
         Elf64_Dyn *dyn_section = get_dynamic_section(header, p_headers, base_addr);
 
         Elf64_Sym *symtab = get_dynamic_entry(base_addr, dyn_section, DT_SYMTAB);
@@ -260,7 +268,10 @@ void *get_address(char *function)
             //HARDCODE
             char *str = read_memory(strtab + sym->st_name, 16);
 
-            printf("Debug: '%s'\n", str);
+            if (ELF64_ST_TYPE(sym->st_info) != STT_FUNC)
+                continue;
+
+            printf("Debug: '%s' -> %p\n", str, (void *) sym->st_value);
 
             if (!strcmp(str, function))
             {
