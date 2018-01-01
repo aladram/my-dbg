@@ -3,12 +3,14 @@
 #include <elf.h>
 #include <err.h>
 #include <fcntl.h>
+#include <link.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include "exceptions.h"
 #include "file_utils.h"
@@ -28,20 +30,20 @@ static size_t elf_size(void)
     return size;
 }
 
-static void *open_elf(size_t size)
+static void *open_elf(size_t size, int *fd)
 {
     char *path = get_proc_path("exe");
 
-    int fd = open(path, O_RDONLY);
+    *fd = open(path, O_RDONLY);
 
-    if (fd == -1)
+    if (*fd == -1)
     {
         warn("%s", path);
 
         throw(IOException);
     }
 
-    void *elf = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+    void *elf = mmap(NULL, size, PROT_READ, MAP_PRIVATE, *fd, 0);
 
     if (elf == MAP_FAILED)
     {
@@ -103,8 +105,8 @@ static char *elf_symbol_name(char *elf, Elf64_Shdr *s_headers,
             + sym->st_name);
 }
 
-void *get_address_exec(char *function, void *elf,
-                       Elf64_Ehdr *header, Elf64_Shdr *s_headers)
+static void *get_address_exec(char *function, void *elf,
+                              Elf64_Ehdr *header, Elf64_Shdr *s_headers)
 {
     for (size_t i = 0; i < header->e_shnum; ++i)
     {
@@ -187,36 +189,127 @@ static Elf64_Phdr *get_program_header(Elf64_Ehdr *header, Elf64_Phdr *p_headers,
     return NULL;
 }
 
-void *get_base_address(Elf64_Ehdr *header, Elf64_Phdr *p_headers)
+static void *get_base_address(Elf64_Ehdr *header, Elf64_Phdr *p_headers)
 {
     Elf64_Phdr *phdr_ph = get_program_header(header, p_headers, PT_PHDR);
 
     return (char *) p_headers - phdr_ph->p_vaddr;
 }
 
-Elf64_Dyn *get_dynamic_section(Elf64_Ehdr *header, Elf64_Phdr *p_headers,
-                               void *base_addr)
+static void *calc_address(char *base_addr, void *addr)
+{
+    if (!addr)
+        return NULL;
+
+    if ((char *) addr < base_addr)
+        return base_addr + (size_t) addr;
+
+    return addr;
+}
+
+static Elf64_Dyn *get_dynamic_section(Elf64_Ehdr *header, Elf64_Phdr *p_headers,
+                                      void *base_addr)
 {
     Elf64_Phdr *dyn_ph = get_program_header(header, p_headers, PT_DYNAMIC);
 
     return (Elf64_Dyn *) ((char *) base_addr + dyn_ph->p_vaddr);
 }
 
-void *get_dynamic_entry(char *base_addr,
-                        Elf64_Dyn *dyn_section, Elf64_Sxword d_tag)
+static void *get_dynamic_entry(char *base_addr,
+                               Elf64_Dyn *dyn_section, Elf64_Sxword d_tag)
 {
     for (;; ++dyn_section)
     {
         Elf64_Dyn *dyn = (void *) read_memory(dyn_section, sizeof(*dyn));
 
         if (dyn->d_tag == d_tag)
-            return base_addr + dyn->d_un.d_ptr;
+            return calc_address(base_addr, (void *) dyn->d_un.d_ptr);
 
         if (dyn->d_tag == DT_NULL)
             break;
     }
 
     throw(ELFException);
+
+    return NULL;
+}
+
+static void *get_address_dyn(char *function, Elf64_Dyn *dyn_section,
+                             void *base_addr)
+{
+    Elf64_Sym *symtab = get_dynamic_entry(base_addr, dyn_section, DT_SYMTAB);
+
+    char *strtab = get_dynamic_entry(base_addr, dyn_section, DT_STRTAB);
+
+    size_t size = (strtab - (char *) symtab) / sizeof(Elf64_Sym);
+
+    for (size_t i = 0; i < size; ++i)
+    {
+        Elf64_Sym *sym = (void *) read_memory(symtab + i, sizeof(*sym));
+
+        //HARDCODE
+        char *str = read_memory(strtab + sym->st_name, 64);
+
+        if (ELF64_ST_TYPE(sym->st_info) != STT_FUNC)
+            continue;
+
+        if (!strcmp(str, function))
+            return (void *) sym->st_value;
+    }
+
+    return NULL;
+}
+
+static void *get_address_internal(char *function, void *elf,
+                                  Elf64_Ehdr *header, Elf64_Shdr *s_headers)
+{
+    if (header->e_type == ET_EXEC)
+        return get_address_exec(function, elf, header, s_headers);
+
+    // Supported ELF types are only for now: ET_EXEC, ET_DYN
+    else if (header->e_type != ET_DYN)
+        throw(ELFException);
+
+    Elf64_auxv_t *auxv = get_auxiliary_vector();
+
+    Elf64_Phdr *p_headers = extract_program_headers(auxv);
+
+    void *base_addr = get_base_address(header, p_headers);
+
+    void *addr = get_address_exec(function, elf, header, s_headers);
+
+    if (addr)
+        return calc_address(base_addr, addr);
+
+    Elf64_Dyn *dyn_section = get_dynamic_section(header, p_headers, base_addr);
+
+    addr = get_address_dyn(function, dyn_section, base_addr);
+
+    if (addr)
+        return calc_address(base_addr, addr);
+
+    struct r_debug *r_debug = get_dynamic_entry(base_addr, dyn_section, DT_DEBUG);
+
+    if (!r_debug)
+    {
+        warn("Libraries are not loaded yet?");
+
+        return NULL;
+    }
+
+    r_debug = (void *) read_memory(r_debug, sizeof(*r_debug));
+
+    struct link_map *map = r_debug->r_map;
+
+    for (; map; map = map->l_next)
+    {
+        map = (void *) read_memory(map, sizeof(*map));
+
+        addr = get_address_dyn(function, map->l_ld, base_addr);
+
+        if (addr)
+            return (char *) addr + map->l_addr;
+    }
 
     return NULL;
 }
@@ -229,64 +322,35 @@ void *get_address(char *function)
 {
     size_t size = elf_size();
 
-    void *elf = open_elf(size);
+    int fd;
+
+    void *elf = open_elf(size, &fd);
 
     void *addr = NULL;
 
-    Elf64_Ehdr *header = elf_header(elf);
+    enum my_exception my_ex = None;
 
-    Elf64_Shdr *s_headers = elf_sections_header(elf, header);
+    try {
+        Elf64_Ehdr *header = elf_header(elf);
 
-    if (header->e_type == ET_EXEC)
-        addr = get_address_exec(function, elf, header, s_headers);
+        Elf64_Shdr *s_headers = elf_sections_header(elf, header);
 
-    else if (header->e_type == ET_DYN)
-    {
-        Elf64_auxv_t *auxv = get_auxiliary_vector();
-
-        Elf64_Phdr *p_headers = extract_program_headers(auxv);
-
-        void *base_addr = get_base_address(header, p_headers);
-
-        void *tmp_addr = get_address_exec(function, elf, header, s_headers);
-
-        if (tmp_addr)
-            return (char *) base_addr + (size_t) tmp_addr;
-
-        Elf64_Dyn *dyn_section = get_dynamic_section(header, p_headers, base_addr);
-
-        Elf64_Sym *symtab = get_dynamic_entry(base_addr, dyn_section, DT_SYMTAB);
-
-        char *strtab = get_dynamic_entry(base_addr, dyn_section, DT_STRTAB);
-
-        size_t size = (strtab - (char *) symtab) / sizeof(Elf64_Sym);
-
-        for (size_t i = 0; i < size; ++i)
-        {
-            Elf64_Sym *sym = (void *) read_memory(symtab + i, sizeof(*sym));
-
-            //HARDCODE
-            char *str = read_memory(strtab + sym->st_name, 16);
-
-            if (ELF64_ST_TYPE(sym->st_info) != STT_FUNC)
-                continue;
-
-            printf("Debug: '%s' -> %p\n", str, (void *) sym->st_value);
-
-            if (!strcmp(str, function))
-            {
-                addr = (void *) sym->st_value;
-
-                break;
-            }
-        }
+        addr = get_address_internal(function, elf, header, s_headers);
     }
+    catch (ELFException, IOException)
+    {
+        my_ex = ex;
+    }
+    etry;
 
-    else
-        throw(ELFException);
+    if (munmap(elf, size) && my_ex == None)
+        my_ex = IOException;
 
-    if (munmap(elf, size))
-        throw(IOException);
+    if (close(fd) && my_ex == None)
+        my_ex = IOException;
+
+    if (my_ex != None)
+        throw(my_ex);
 
     return addr;
 }
