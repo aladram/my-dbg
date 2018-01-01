@@ -262,8 +262,15 @@ static void *get_address_dyn(char *function, Elf64_Dyn *dyn_section,
 static void *get_address_internal(char *function, void *elf,
                                   Elf64_Ehdr *header, Elf64_Shdr *s_headers)
 {
+    void *addr = NULL;
+
     if (header->e_type == ET_EXEC)
-        return get_address_exec(function, elf, header, s_headers);
+    {
+        addr = get_address_exec(function, elf, header, s_headers);
+
+        if (addr)
+            return addr;
+    }
 
     // Supported ELF types are only for now: ET_EXEC, ET_DYN
     else if (header->e_type != ET_DYN)
@@ -275,17 +282,20 @@ static void *get_address_internal(char *function, void *elf,
 
     void *base_addr = get_base_address(header, p_headers);
 
-    void *addr = get_address_exec(function, elf, header, s_headers);
+    addr = get_address_exec(function, elf, header, s_headers);
 
     if (addr)
         return calc_address(base_addr, addr);
 
     Elf64_Dyn *dyn_section = get_dynamic_section(header, p_headers, base_addr);
 
-    addr = get_address_dyn(function, dyn_section, base_addr);
+    if (header->e_type == ET_DYN)
+    {
+        addr = get_address_dyn(function, dyn_section, base_addr);
 
-    if (addr)
-        return calc_address(base_addr, addr);
+        if (addr)
+            return calc_address(base_addr, addr);
+    }
 
     struct r_debug *r_debug = get_dynamic_entry(base_addr, dyn_section, DT_DEBUG);
 
@@ -304,7 +314,7 @@ static void *get_address_internal(char *function, void *elf,
     {
         map = (void *) read_memory(map, sizeof(*map));
 
-        addr = get_address_dyn(function, map->l_ld, base_addr);
+        addr = get_address_dyn(function, map->l_ld, (void *) map->l_addr);
 
         if (addr)
             return (char *) addr + map->l_addr;
