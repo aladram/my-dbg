@@ -9,6 +9,7 @@
 
 #include "binary.h"
 #include "format_utils.h"
+#include "memory_utils.h"
 
 char *read_memory(void *addr, size_t size)
 {
@@ -61,4 +62,51 @@ char *read_memory(void *addr, size_t size)
     close(fd);
 
     return NULL;
+}
+
+static size_t add_char(char **buf, size_t length, char c)
+{
+    *buf = my_realloc(*buf, ++length);
+
+    (*buf)[length - 1] = c;
+
+    return length;
+}
+
+char *read_mem_string(void *addr)
+{
+    char *mem_path = get_proc_path("mem");
+
+    int fd = open(mem_path, O_RDONLY);
+
+    if (fd == -1)
+    {
+        warn("%s", mem_path);
+
+        return NULL;
+    }
+
+    char *buf = NULL;
+
+    size_t length = 0;
+
+    char c = 0;
+
+    ssize_t ret = pread(fd, &c, 1, (off_t) addr + length);
+
+    for (; c && ret == 1; ret = pread(fd, &c, 1, (off_t) addr + length))
+        length = add_char(&buf, length, c);
+
+    if (ret == -1)
+    {
+        free(buf);
+
+        buf = NULL;
+    }
+
+    add_char(&buf, length, 0);
+
+    close(fd);
+
+    return buf;
 }

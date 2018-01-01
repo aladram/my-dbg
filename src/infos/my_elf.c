@@ -247,8 +247,7 @@ static void *get_address_dyn(char *function, Elf64_Dyn *dyn_section,
     {
         Elf64_Sym *sym = (void *) read_memory(symtab + i, sizeof(*sym));
 
-        //HARDCODE
-        char *str = read_memory(strtab + sym->st_name, 64);
+        char *str = read_mem_string(strtab + sym->st_name);
 
         if (ELF64_ST_TYPE(sym->st_info) != STT_FUNC)
             continue;
@@ -292,7 +291,7 @@ static void *get_address_internal(char *function, void *elf,
 
     if (!r_debug)
     {
-        warn("Libraries are not loaded yet?");
+        warnx("Libraries are not loaded yet?");
 
         return NULL;
     }
