@@ -150,16 +150,11 @@ void print_backtrace(void)
     if (ret)
         MY_BT_ERROR(ret);
 
-    int step = unw_step(&cursor);
+    int step = 1;
 
-    if (!step)
-    {
-        warnx("No stack");
+    size_t count = 0;
 
-        return;
-    }
-
-    for (size_t count = 0; step > 0 && count < MY_MAX_BT_DEPTH;
+    for (; step > 0 && count < MY_MAX_BT_DEPTH;
          step = unw_step(&cursor), ++count) {
         unw_word_t ip;
 
@@ -188,6 +183,9 @@ void print_backtrace(void)
 
         printf("\n");
     }
+
+    if (!count)
+        warnx("No stack");
 
     if (step < 0)
         MY_BT_ERROR(step);

@@ -47,6 +47,9 @@ void setup_binary(char **argv)
 
     if (!WIFSTOPPED(wstatus) || WSTOPSIG(wstatus) != SIGTRAP)
         errx(1, "An error occured while trying to debug program, exiting");
+
+    if (ptrace(PTRACE_SETOPTIONS, g_pid, NULL, PTRACE_O_EXITKILL) == -1)
+        err(1, "ptrace failed");
 }
 
 int wait_program(int step)
