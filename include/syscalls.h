@@ -13,4 +13,8 @@ int in_syscalls(int syscall);
 
 void add_syscall_break(int syscall);
 
+char *syscall_name(int syscall);
+
+int syscall_num(char *syscall);
+
 #endif /* SYSCALLS_H */

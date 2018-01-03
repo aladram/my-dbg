@@ -39,6 +39,7 @@
 # define EXCEPTIONS_H
 
 # include <setjmp.h>
+# include <stddef.h>
 
 enum my_exception
 {
@@ -67,6 +68,7 @@ void delete_env(void);
 
 void throw_exception(enum my_exception ex);
 
+size_t ex_depth(void);
 
 // Cast to prevent compiler errors about incomplete switch cases
 # define try do { jmp_buf ex_buf__; new_env(&ex_buf__); \

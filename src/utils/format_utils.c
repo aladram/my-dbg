@@ -22,8 +22,9 @@ void *read_address(char *str)
         && len == (int) slen)
         return addr;
 
-    warnx("Invalid address specified\n"
-          "Valid address example: 0xadead007babe");
+    if (ex_depth() <= 1)
+        warnx("Invalid address specified\n"
+              "Valid address example: 0xadead007babe");
 
     throw(Exception);
 
@@ -47,8 +48,9 @@ size_t read_size(char *str)
         && len == (int) slen)
         return size;
 
-    warnx("Invalid number specified\n"
-          "Valid number examples: 42, 0x2a");
+    if (ex_depth() <= 1)
+        warnx("Invalid number specified\n"
+              "Valid number examples: 42, 0x2a");
 
     throw(Exception);
 

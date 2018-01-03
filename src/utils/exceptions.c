@@ -61,3 +61,15 @@ void throw_exception(enum my_exception ex)
 
     longjmp(*list->env, ex);
 }
+
+size_t ex_depth(void)
+{
+    size_t depth = 0;
+
+    struct my_env_list *l = list;
+
+    for (; l; l = l->next)
+        ++depth;
+
+    return depth;
+}
