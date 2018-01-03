@@ -31,7 +31,7 @@ static void attach_process(pid_t pid)
             throw(WaitException);
         }
 
-        my_ptrace(PTRACE_O_EXITKILL, NULL, (void *) PTRACE_O_EXITKILL);
+        my_ptrace(PTRACE_O_EXITKILL, NULL, g_options);
     }
     catch (PtraceException)
     {

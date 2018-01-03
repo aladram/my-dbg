@@ -41,12 +41,14 @@ cmd_tbreak.c \
 cmd_next_instr.c \
 cmd_attach.c \
 cmd_breakf.c \
+cmd_breaks.c \
 binary.c \
 breakpoints.c \
 registers.c \
 memory.c \
 mem_mappings.c \
 errors.c \
+syscalls.c \
 libunwind_wrapper.c \
 capstone_wrapper.c \
 my_syscalls.c \

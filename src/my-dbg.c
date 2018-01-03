@@ -4,6 +4,7 @@
 #include <readline/history.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ptrace.h>
 
 #include "binary.h"
 #include "commands.h"
@@ -11,6 +12,8 @@
 #include "prompt.h"
 
 int g_quit = 0;
+
+void *g_options = (void *) (PTRACE_O_EXITKILL | PTRACE_O_TRACESYSGOOD);
 
 void setup_modules(void)
 {

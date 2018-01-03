@@ -42,15 +42,16 @@
 
 enum my_exception
 {
-    None            = 0,
-    Exception       = 1,
-    PtraceException = 2,
-    WaitException   = 3,
-    ScanfException  = 4,
-    PrintfException = 5,
-    IOException     = 6,
-    AllocException  = 7,
-    ELFException    = 8
+    None             = 0,
+    Exception        = 1,
+    PtraceException  = 2,
+    WaitException    = 3,
+    ScanfException   = 4,
+    PrintfException  = 5,
+    IOException      = 6,
+    AllocException   = 7,
+    ELFException     = 8,
+    SyscallException = 9
 };
 
 struct my_env_list

@@ -1,6 +1,8 @@
 #include "binary.h"
 
+#include <assert.h>
 #include <err.h>
+#include <errno.h>
 #include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -15,10 +17,13 @@
 #include "my-dbg.h"
 #include "my_syscalls.h"
 #include "registers.h"
+#include "syscalls.h"
 
 pid_t g_pid;
 
 static size_t g_signum;
+
+static int g_syscall_entry;
 
 /*
 * Classic error handling: here, errors are considered fatal
@@ -48,7 +53,7 @@ void setup_binary(char **argv)
     if (!WIFSTOPPED(wstatus) || WSTOPSIG(wstatus) != SIGTRAP)
         errx(1, "An error occured while trying to debug program, exiting");
 
-    if (ptrace(PTRACE_SETOPTIONS, g_pid, NULL, PTRACE_O_EXITKILL) == -1)
+    if (ptrace(PTRACE_SETOPTIONS, g_pid, NULL, g_options) == -1)
         err(1, "ptrace failed");
 }
 
@@ -60,7 +65,7 @@ int wait_program(int step)
 
     if (WIFSTOPPED(wstatus))
     {
-        g_signum = WSTOPSIG(wstatus);
+        g_signum = WSTOPSIG(wstatus) & 0x7F;
 
         if (step && g_signum == SIGTRAP)
         {
@@ -71,7 +76,9 @@ int wait_program(int step)
 
         void *addr = (void *) (get_register(MY_REG_RIP) - 1);
 
-        if (is_breakpoint(addr))
+        int is_bp = is_breakpoint(addr);
+
+        if (is_bp)
         {
             struct my_bp *bp = get_breakpoint(addr);
 
@@ -84,6 +91,25 @@ int wait_program(int step)
 
             if (g_signum == SIGTRAP)
                 g_signum = 0;
+        }
+
+        if (WSTOPSIG(wstatus) & 0x80)
+        {
+            g_signum = 0;
+
+            int syscall = get_register(MY_REG_ORIG_RAX);
+
+            g_syscall_entry = !g_syscall_entry;
+
+            if (in_syscalls(syscall) && g_syscall_entry)
+                printf("Syscall %d catched\n", syscall);
+
+            else if (!is_bp)
+            {
+                continue_execution();
+
+                return 0;
+            }
         }
 
         if (g_signum)
@@ -145,7 +171,7 @@ void continue_execution(void)
     if (is_breakpoint(addr) && !single_step())
         return;
 
-    my_ptrace(PTRACE_CONT, NULL, (void *) g_signum);
+    my_ptrace(syscalls ? PTRACE_SYSCALL : PTRACE_CONT, NULL, (void *) g_signum);
 
     g_signum = 0;
 

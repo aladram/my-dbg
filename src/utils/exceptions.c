@@ -48,6 +48,7 @@ static char *exception_name(enum my_exception ex)
     CASE_EX_NAME(IOException);
     CASE_EX_NAME(AllocException);
     CASE_EX_NAME(ELFException);
+    CASE_EX_NAME(SyscallException);
     }
 
     return "UnknownException";
