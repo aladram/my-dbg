@@ -42,6 +42,7 @@ cmd_next_instr.c \
 cmd_attach.c \
 cmd_breakf.c \
 cmd_breaks.c \
+cmd_break_list.c \
 binary.c \
 breakpoints.c \
 registers.c \

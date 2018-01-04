@@ -3,9 +3,9 @@
 
 # include <stddef.h>
 
-int *syscalls;
+int *g_syscalls;
 
-size_t syscalls_nb;
+size_t g_syscalls_nb;
 
 int is_syscall();
 

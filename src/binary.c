@@ -82,10 +82,11 @@ int wait_program(int step)
         {
             struct my_bp *bp = get_breakpoint(addr);
 
-            if (bp->temp)
+            if (bp->flags & MY_BP_TEMP)
                 toggle_breakpoint(bp);
 
-            printf("Breakpoint %zu at %p\n", bp->id, addr);
+            if (!(bp->flags & MY_BP_INTERNAL))
+                printf("Breakpoint %zu at %p\n", bp->id, addr);
 
             set_register(MY_REG_RIP, (size_t) addr);
 
@@ -102,7 +103,18 @@ int wait_program(int step)
             g_syscall_entry = !g_syscall_entry;
 
             if (in_syscalls(syscall) && g_syscall_entry)
-                printf("Syscall %d catched\n", syscall);
+            {
+                try
+                {
+                    printf("Syscall %s (%d) catched\n",
+                           syscall_name(syscall), syscall);
+                }
+                catch (SyscallException)
+                {
+                    printf("Syscall %d catched\n", syscall);
+                }
+                etry;
+            }
 
             else if (!is_bp)
             {
@@ -171,7 +183,8 @@ void continue_execution(void)
     if (is_breakpoint(addr) && !single_step())
         return;
 
-    my_ptrace(syscalls ? PTRACE_SYSCALL : PTRACE_CONT, NULL, (void *) g_signum);
+    my_ptrace(g_syscalls ? PTRACE_SYSCALL : PTRACE_CONT,
+              NULL, (void *) g_signum);
 
     g_signum = 0;
 

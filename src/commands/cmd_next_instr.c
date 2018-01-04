@@ -22,9 +22,12 @@ static void cmd_next_instr(size_t argc, char **argv)
     if (!instr)
         return;
 
-    if (starts_with(instr->str, "call"))
+    int over = starts_with(instr->str, "call");
+
+    if (over)
     {
-        place_breakpoint((void *) (rip + instr->size), 1);
+        place_breakpoint((void *) (rip + instr->size),
+                         MY_BP_TEMP | MY_BP_INTERNAL);
 
         continue_execution();
     }
@@ -34,7 +37,7 @@ static void cmd_next_instr(size_t argc, char **argv)
 
     rip = get_register(MY_REG_RIP);
 
-    printf("Stepped to %p\n", (void *) rip);
+    printf("Stepped%s to %p\n", over ? " call" : "", (void *) rip);
 }
 
 register_command(next_instr,

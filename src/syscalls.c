@@ -1,16 +1,18 @@
 #include "syscalls.h"
 
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 
+#include "breakpoints.h"
 #include "exceptions.h"
 #include "memory_utils.h"
 #include "my_syscalls.h"
 #include "registers.h"
 
-int *syscalls;
+int *g_syscalls;
 
-size_t syscalls_nb;
+size_t g_syscalls_nb;
 
 int is_syscall()
 {
@@ -23,8 +25,8 @@ int is_syscall()
 
 int in_syscalls(int syscall)
 {
-    for (size_t i = 0; i < syscalls_nb; ++i)
-        if (syscall == syscalls[i])
+    for (size_t i = 0; i < g_syscalls_nb; ++i)
+        if (syscall == g_syscalls[i])
             return 1;
 
     return 0;
@@ -32,23 +34,26 @@ int in_syscalls(int syscall)
 
 void add_syscall_break(int syscall)
 {
-    syscalls = my_realloc(syscalls, sizeof(int) * ++syscalls_nb);
+    g_syscalls = my_realloc(g_syscalls, sizeof(int) * ++g_syscalls_nb);
 
-    syscalls[syscalls_nb - 1] = syscall;
+    g_syscalls[g_syscalls_nb - 1] = syscall;
+
+    place_breakpoint((void *) (uintptr_t) syscall, MY_BP_SYSCALL);
 }
 
 #include "syscalls_list.h"
 
 #define MY_CONCAT(_1, _2) _1 ## _2
 
-#define CASE_SYSCALL(Syscall) if (syscall == MY_CONCAT(SYS_, Syscall)) return #Syscall
+#define CASE_SYSCALL(Syscall) if (syscall == MY_CONCAT(SYS_, Syscall)) \
+                                  return #Syscall
 
 char *syscall_name(int syscall)
 {
     if (syscall != -1)
-{
+    {
 CASES_SYSCALL
-}
+    }
 
     throw(SyscallException);
 
@@ -56,7 +61,8 @@ CASES_SYSCALL
 }
 
 #undef CASE_SYSCALL
-#define CASE_SYSCALL(Syscall) if (!strcmp(syscall, #Syscall)) return MY_CONCAT(SYS_, Syscall)
+#define CASE_SYSCALL(Syscall) if (!strcmp(syscall, #Syscall)) \
+                                  return MY_CONCAT(SYS_, Syscall)
 
 static int syscall_num_aux(char *syscall)
 {

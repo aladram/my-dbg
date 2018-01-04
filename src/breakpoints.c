@@ -11,15 +11,19 @@
 #include "memory_utils.h"
 #include "my_syscalls.h"
 
-static struct my_bp *breakpoints;
+struct my_bp *g_breakpoints;
 
-static size_t bp_len;
+size_t g_bp_len;
 
 struct my_bp *get_breakpoint(void *addr)
 {
-    for (size_t i = 0; i < bp_len; ++i)
-        if (breakpoints[i].addr == addr && breakpoints[i].enabled)
-            return breakpoints + i;
+    for (size_t i = 0; i < g_bp_len; ++i)
+    {
+        struct my_bp *bp = g_breakpoints + i;
+
+        if (bp->addr == addr && bp->enabled && (!(bp->flags & MY_BP_SYSCALL)))
+            return bp;
+    }
 
     return NULL;
 }
@@ -31,7 +35,7 @@ int is_breakpoint(void *addr)
 
 void toggle_breakpoint(struct my_bp *bp)
 {
-    if (!bp->enabled && bp->temp)
+    if (!bp->enabled && (bp->flags & MY_BP_TEMP))
         return;
 
     size_t word = my_ptrace(PTRACE_PEEKDATA, bp->addr, NULL);
@@ -49,25 +53,31 @@ void toggle_breakpoint(struct my_bp *bp)
     bp->enabled = !bp->enabled;
 }
 
-size_t place_breakpoint(void *addr, int temp)
+size_t place_breakpoint(void *addr, enum my_bp_flags flags)
 {
-    size_t word = my_ptrace(PTRACE_PEEKDATA, addr, NULL);
+    size_t word = 0;
 
-    size_t word_bp = (word & (~0xFF)) | 0xCC;
+    if (!(flags & MY_BP_SYSCALL))
+    {
+        word = my_ptrace(PTRACE_PEEKDATA, addr, NULL);
 
-    my_ptrace(PTRACE_POKEDATA, addr, (void *) word_bp);
+        size_t word_bp = (word & (~0xFF)) | 0xCC;
 
-    breakpoints = my_realloc(breakpoints, ++bp_len * sizeof(struct my_bp));
+        my_ptrace(PTRACE_POKEDATA, addr, (void *) word_bp);
+    }
 
-    breakpoints[bp_len - 1].id = bp_len;
+    g_breakpoints = my_realloc(g_breakpoints,
+                               ++g_bp_len * sizeof(struct my_bp));
 
-    breakpoints[bp_len - 1].addr = addr;
+    g_breakpoints[g_bp_len - 1].id = g_bp_len;
 
-    breakpoints[bp_len - 1].word = word;
+    g_breakpoints[g_bp_len - 1].flags = flags;
 
-    breakpoints[bp_len - 1].enabled = 1;
+    g_breakpoints[g_bp_len - 1].addr = addr;
 
-    breakpoints[bp_len - 1].temp = temp;
+    g_breakpoints[g_bp_len - 1].word = word;
 
-    return bp_len;
+    g_breakpoints[g_bp_len - 1].enabled = 1;
+
+    return g_bp_len;
 }
