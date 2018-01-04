@@ -15,6 +15,7 @@
 #include "exceptions.h"
 #include "file_utils.h"
 #include "format_utils.h"
+#include "gnu_hash_table.h"
 #include "memory.h"
 #include "memory_utils.h"
 
@@ -103,6 +104,35 @@ static char *elf_symbol_name(char *elf, Elf64_Shdr *s_headers,
 {
     return (elf_string_section(elf, s_headers, sym_header->sh_link)
             + sym->st_name);
+}
+
+static char *elf_section_name(Elf64_Ehdr *header, Elf64_Shdr *s_headers,
+                              Elf64_Shdr *sh)
+{
+    void *elf = header;
+
+    return elf_string_section(elf, s_headers, header->e_shstrndx) + sh->sh_name;
+}
+
+void *elf_section(Elf64_Ehdr *header, Elf64_Shdr *s_headers,
+                  char *name, uint32_t sh_type)
+{
+    void *elf = header;
+
+    for (size_t i = 0; i < header->e_shnum; ++i)
+    {
+        Elf64_Shdr *sh = s_headers + i;
+
+        if (name && strcmp(name, elf_section_name(header, s_headers, sh)))
+            continue;
+
+        if (sh->sh_type == sh_type)
+            return (char *) elf + sh->sh_offset;
+    }
+
+    throw(ELFException);
+
+    return NULL;
 }
 
 static void *get_address_exec(char *function, void *elf,
@@ -215,8 +245,8 @@ static Elf64_Dyn *get_dynamic_section(Elf64_Ehdr *header, Elf64_Phdr *p_headers,
     return (Elf64_Dyn *) ((char *) base_addr + dyn_ph->p_vaddr);
 }
 
-static void *get_dynamic_entry(char *base_addr,
-                               Elf64_Dyn *dyn_section, Elf64_Sxword d_tag)
+void *get_dynamic_entry(char *base_addr,
+                        Elf64_Dyn *dyn_section, Elf64_Sxword d_tag)
 {
     for (;; ++dyn_section)
     {
@@ -247,10 +277,10 @@ static void *get_address_dyn(char *function, Elf64_Dyn *dyn_section,
     {
         Elf64_Sym *sym = (void *) read_memory(symtab + i, sizeof(*sym));
 
-        char *str = read_mem_string(strtab + sym->st_name);
-
         if (ELF64_ST_TYPE(sym->st_info) != STT_FUNC)
             continue;
+
+        char *str = read_mem_string(strtab + sym->st_name);
 
         if (!strcmp(str, function))
             return (void *) sym->st_value;
@@ -297,7 +327,8 @@ static void *get_address_internal(char *function, void *elf,
             return calc_address(base_addr, addr);
     }
 
-    struct r_debug *r_debug = get_dynamic_entry(base_addr, dyn_section, DT_DEBUG);
+    struct r_debug *r_debug = get_dynamic_entry(base_addr, dyn_section,
+                                                DT_DEBUG);
 
     if (!r_debug)
     {
@@ -313,6 +344,11 @@ static void *get_address_internal(char *function, void *elf,
     for (; map; map = map->l_next)
     {
         map = (void *) read_memory(map, sizeof(*map));
+
+        addr = get_address_gnu_hash(function, map->l_ld, (void *) map->l_addr);
+
+        if (addr)
+            return (char *) addr + map->l_addr;
 
         addr = get_address_dyn(function, map->l_ld, (void *) map->l_addr);
 

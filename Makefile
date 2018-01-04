@@ -52,7 +52,8 @@ syscalls.c \
 libunwind_wrapper.c \
 capstone_wrapper.c \
 my_syscalls.c \
-my_elf.c
+my_elf.c \
+gnu_hash_table.c
 
 OBJS = $(FILES:%.c=%.o)
 

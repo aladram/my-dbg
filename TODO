@@ -1,8 +1,10 @@
 Features:
 * Test attach (permission denied at school)
+* read_memory: exceptions
 
 Clean:
 * Internal breakpoints (hidden)
 * Test my-dbg with optimized binaries
 * Stack all allocs after a catch and free them if an exception is caught
 * Check most error cases to check if exceptions are trigerred correctly
+* valgrind...
