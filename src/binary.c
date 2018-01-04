@@ -1,6 +1,5 @@
 #include "binary.h"
 
-#include <assert.h>
 #include <err.h>
 #include <errno.h>
 #include <signal.h>

@@ -45,6 +45,7 @@ cmd_breaks.c \
 cmd_break_list.c \
 cmd_break_del.c \
 cmd_disassemble.c \
+cmd_finish.c \
 binary.c \
 breakpoints.c \
 registers.c \

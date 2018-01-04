@@ -47,3 +47,8 @@ void disasm_error(void)
 {
     warnx("Dissasemble failed");
 }
+
+void unwind_error(void)
+{
+    warnx("Unwind failed");
+}

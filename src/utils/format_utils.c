@@ -7,10 +7,14 @@
 #include "binary.h"
 #include "exceptions.h"
 #include "my_limits.h"
+#include "registers.h"
 #include "string_utils.h"
 
 void *read_address(char *str)
 {
+    if (starts_with(str, "%"))
+        return (void *) get_register_from_name(str + 1);
+
     int len = 0;
 
     void *addr;
@@ -33,7 +37,7 @@ void *read_address(char *str)
 
 size_t read_size(char *str)
 {
-    if (starts_with(str, "0x"))
+    if (starts_with(str, "0x") || starts_with(str, "%"))
         return (size_t) read_address(str);
 
     int len = 0;

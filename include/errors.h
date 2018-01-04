@@ -17,4 +17,6 @@ void elf_error(void);
 
 void disasm_error(void);
 
+void unwind_error(void);
+
 #endif /* ERRORS_H */

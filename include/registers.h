@@ -41,4 +41,6 @@ size_t get_register(enum my_reg reg);
 
 void set_register(enum my_reg reg, size_t value);
 
+size_t get_register_from_name(char *reg);
+
 #endif /* REGISTERS_H */

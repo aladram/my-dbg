@@ -41,8 +41,6 @@ char *read_memory(void *addr, size_t size)
         return buf;
     }
 
-    free(buf);
-
     close(fd);
 
     throw(MemoryException);

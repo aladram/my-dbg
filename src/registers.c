@@ -3,6 +3,7 @@
 #include <err.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/user.h>
 
 #include "binary.h"
@@ -10,42 +11,15 @@
 #include "exceptions.h"
 #include "my_syscalls.h"
 
-#define CASE_REG(RegUp, RegLow) case RegUp: \
+#include "registers_list.h"
+
+#define CASE_REG(RegUp, RegLow) if (reg == RegUp) \
                                     return (size_t *) &regs->RegLow;
 
 static size_t *get_register_internal(struct user_regs_struct *regs,
                                      enum my_reg reg)
 {
-    switch (reg)
-    {
-    CASE_REG(MY_REG_RIP, rip);
-    CASE_REG(MY_REG_RSP, rsp);
-    CASE_REG(MY_REG_RBP, rbp);
-    CASE_REG(MY_REG_EFLAGS, eflags);
-    CASE_REG(MY_REG_ORIG_RAX, orig_rax);
-    CASE_REG(MY_REG_RAX, rax);
-    CASE_REG(MY_REG_RBX, rbx);
-    CASE_REG(MY_REG_RCX, rcx);
-    CASE_REG(MY_REG_RDX, rdx);
-    CASE_REG(MY_REG_RDI, rdi);
-    CASE_REG(MY_REG_RSI, rsi);
-    CASE_REG(MY_REG_R8, r8);
-    CASE_REG(MY_REG_R9, r9);
-    CASE_REG(MY_REG_R10, r10);
-    CASE_REG(MY_REG_R11, r11);
-    CASE_REG(MY_REG_R12, r12);
-    CASE_REG(MY_REG_R13, r13);
-    CASE_REG(MY_REG_R14, r14);
-    CASE_REG(MY_REG_R15, r15);
-    CASE_REG(MY_REG_CS, cs);
-    CASE_REG(MY_REG_DS, ds);
-    CASE_REG(MY_REG_ES, es);
-    CASE_REG(MY_REG_FS, fs);
-    CASE_REG(MY_REG_GS, gs);
-    CASE_REG(MY_REG_SS, ss);
-    CASE_REG(MY_REG_FS_BASE, fs_base);
-    CASE_REG(MY_REG_GS_BASE, gs_base);
-    }
+CASES_REG
 
     return 0;
 }
@@ -75,4 +49,19 @@ void set_register(enum my_reg reg, size_t value)
     *reg_ptr = value;
 
     my_ptrace(PTRACE_SETREGS, NULL, &regs);
+}
+
+#undef CASE_REG
+#define CASE_REG(RegUp, RegLow) if (!strcmp(reg, #RegLow)) \
+                                    return get_register(RegUp);
+
+size_t get_register_from_name(char *reg)
+{
+CASES_REG
+
+    warnx("Unknown register '%s'", reg);
+
+    throw(Exception);
+
+    return 0;
 }

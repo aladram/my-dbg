@@ -10,6 +10,8 @@
 #include <unistd.h>
 
 #include "binary.h"
+#include "capstone_wrapper.h"
+#include "exceptions.h"
 #include "mem_mappings.h"
 
 #define MY_MAX_BT_DEPTH 64
@@ -90,7 +92,7 @@ static void print_error(int ret)
         warn(MY_UNW_ESTOPUNWIND);
 }
 
-char *get_binary_file(struct my_mem_mapping **mappings, void *addr)
+static char *get_binary_file(struct my_mem_mapping **mappings, void *addr)
 {
     if (!mappings)
         return NULL;
@@ -131,15 +133,23 @@ char *get_binary_file(struct my_mem_mapping **mappings, void *addr)
                              return; \
                          }
 
-void print_backtrace(void)
+int check_libunwind(void)
 {
     if (!addr_space)
     {
         warnx("libunwind instantiation failed:"
               " impossible to gather a backtrace");
 
-        return;
+        return 0;
     }
+
+    return 1;
+}
+
+void print_backtrace(void)
+{
+    if (!check_libunwind())
+        return;
 
     struct my_mem_mapping **mappings = get_mem_mappings();
 
@@ -191,6 +201,51 @@ void print_backtrace(void)
         MY_BT_ERROR(step);
 
     free_mem_mappings(mappings);
+}
+
+void *get_finish_address(void)
+{
+    if (!check_libunwind())
+        throw(UnwindException);
+
+    unw_cursor_t cursor;
+
+    int ret = unw_init_remote(&cursor, addr_space, info);
+
+    if (ret)
+    {
+        print_error(ret);
+
+        throw(UnwindException);
+    }
+
+    int step = unw_step(&cursor);
+
+    if (step <= 0)
+    {
+        if (!step)
+            warnx("No caller found");
+
+        else
+            print_error(step);
+
+        throw(UnwindException);
+    }
+
+    unw_word_t ip;
+
+    ret = unw_get_reg(&cursor, UNW_REG_IP, &ip);
+
+    if (ret)
+    {
+        print_error(ret);
+
+        throw(UnwindException);
+    }
+
+    struct my_instr *instr = get_instruction((void *) ip);
+
+    return (char *) ip + instr->size;
 }
 
 void destroy_libunwind(void)

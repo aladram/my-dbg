@@ -50,6 +50,7 @@ static char *exception_name(enum my_exception ex)
     CASE_EX_NAME(ELFException);
     CASE_EX_NAME(SyscallException);
     CASE_EX_NAME(DisasmException);
+    CASE_EX_NAME(UnwindException);
     }
 
     return "UnknownException";

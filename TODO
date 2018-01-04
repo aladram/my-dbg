@@ -3,8 +3,8 @@ Features:
 * read_memory: exceptions
 
 Clean:
+* /!\ README
 * Internal breakpoints (hidden)
 * Test my-dbg with optimized binaries
-* Stack all allocs after a catch and free them if an exception is caught
-* Check most error cases to check if exceptions are trigerred correctly
+* Test most error cases to check if exceptions are trigerred correctly
 * valgrind...
