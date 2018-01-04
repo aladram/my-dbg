@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include "binary.h"
+#include "exceptions.h"
 #include "format_utils.h"
 #include "memory_utils.h"
 
@@ -21,7 +22,7 @@ char *read_memory(void *addr, size_t size)
     {
         warn("%s", mem_path);
 
-        return NULL;
+        throw(MemoryException);
     }
 
     /*
@@ -39,7 +40,7 @@ char *read_memory(void *addr, size_t size)
 
         close(fd);
 
-        return NULL;
+        throw(MemoryException);
     }
 
     ssize_t ret = pread(fd, buf, size, (off_t) addr);
@@ -60,6 +61,8 @@ char *read_memory(void *addr, size_t size)
     free(buf);
 
     close(fd);
+
+    throw(MemoryException);
 
     return NULL;
 }

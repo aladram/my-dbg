@@ -122,9 +122,6 @@ static void examine_memory(char format, void *addr, size_t size)
 {
     char *mem = read_memory(addr, size);
 
-    if (!mem)
-        return;
-
     if (format == 'x')
         examine_hexa(mem, size);
 

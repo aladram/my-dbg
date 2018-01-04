@@ -11,7 +11,7 @@ void printf_error(void);
 
 void io_error(void);
 
-void alloc_error(void);
+void memory_error(void);
 
 void elf_error(void);
 

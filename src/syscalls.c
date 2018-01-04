@@ -25,6 +25,9 @@ int is_syscall()
 
 int in_syscalls(int syscall)
 {
+    if (syscall == -1)
+        return 0;
+
     for (size_t i = 0; i < g_syscalls_nb; ++i)
         if (syscall == g_syscalls[i])
             return 1;

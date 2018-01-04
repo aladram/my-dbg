@@ -50,7 +50,7 @@ enum my_exception
     ScanfException   = 4,
     PrintfException  = 5,
     IOException      = 6,
-    AllocException   = 7,
+    MemoryException  = 7,
     ELFException     = 8,
     SyscallException = 9
 };

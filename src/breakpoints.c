@@ -10,6 +10,7 @@
 #include "commands.h"
 #include "memory_utils.h"
 #include "my_syscalls.h"
+#include "syscalls.h"
 
 struct my_bp *g_breakpoints;
 
@@ -21,7 +22,8 @@ struct my_bp *get_breakpoint(void *addr)
     {
         struct my_bp *bp = g_breakpoints + i;
 
-        if (bp->addr == addr && bp->enabled && (!(bp->flags & MY_BP_SYSCALL)))
+        if (bp->addr == addr && bp->enabled && !bp->deleted
+            && !(bp->flags & MY_BP_SYSCALL))
             return bp;
     }
 
@@ -55,7 +57,7 @@ void toggle_breakpoint(struct my_bp *bp)
 
 size_t place_breakpoint(void *addr, enum my_bp_flags flags)
 {
-    size_t word = 0;
+    size_t word;
 
     if (!(flags & MY_BP_SYSCALL))
     {
@@ -65,6 +67,9 @@ size_t place_breakpoint(void *addr, enum my_bp_flags flags)
 
         my_ptrace(PTRACE_POKEDATA, addr, (void *) word_bp);
     }
+
+    else
+        word = g_syscalls_nb - 1;
 
     g_breakpoints = my_realloc(g_breakpoints,
                                ++g_bp_len * sizeof(struct my_bp));
@@ -78,6 +83,8 @@ size_t place_breakpoint(void *addr, enum my_bp_flags flags)
     g_breakpoints[g_bp_len - 1].word = word;
 
     g_breakpoints[g_bp_len - 1].enabled = 1;
+
+    g_breakpoints[g_bp_len - 1].deleted = 0;
 
     return g_bp_len;
 }

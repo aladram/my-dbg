@@ -21,6 +21,8 @@ struct my_bp
     size_t word;
 
     int enabled;
+
+    int deleted;
 };
 
 struct my_bp *g_breakpoints;

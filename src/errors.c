@@ -33,9 +33,9 @@ void io_error(void)
     warnx("IO error");
 }
 
-void alloc_error(void)
+void memory_error(void)
 {
-    warn("alloc error");
+    warn("memory error");
 }
 
 void elf_error(void)

@@ -127,9 +127,9 @@ void run_command(char *name, char **args)
     {
         io_error();
     }
-    catch (AllocException)
+    catch (MemoryException)
     {
-        alloc_error();
+        memory_error();
     }
     catch (ELFException)
     {

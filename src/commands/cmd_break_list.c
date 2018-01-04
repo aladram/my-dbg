@@ -27,7 +27,7 @@ static void cmd_break_list(size_t argc, char **argv)
     {
         struct my_bp *bp = g_breakpoints + i;
 
-        if (bp->flags & MY_BP_INTERNAL)
+        if ((bp->flags & MY_BP_INTERNAL) || bp->deleted)
             continue;
 
         printf("%-6zu %-10s %-9s %-7s ",
@@ -42,17 +42,17 @@ static void cmd_break_list(size_t argc, char **argv)
 
             try
             {
-                printf("Syscall: %s (%d)", syscall_name(syscall), syscall);
+                printf("syscall: %s (%d)", syscall_name(syscall), syscall);
             }
             catch (SyscallException)
             {
-                printf("Syscall: %d", syscall);
+                printf("syscall: %d", syscall);
             }
             etry;
         }
 
         else
-            printf("Address: %p", bp->addr);
+            printf("address: %p", bp->addr);
 
         printf("\n");
     }

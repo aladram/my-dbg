@@ -12,7 +12,6 @@ CPPFLAGS =  \
 CFLAGS = -Wall -Werror -Wextra -std=c99 -pedantic
 
 LDLIBS = \
--ldl \
 -lreadline -lhistory \
 -lcapstone \
 -lunwind -lunwind-ptrace -lunwind-x86_64 
@@ -43,6 +42,7 @@ cmd_attach.c \
 cmd_breakf.c \
 cmd_breaks.c \
 cmd_break_list.c \
+cmd_break_del.c \
 binary.c \
 breakpoints.c \
 registers.c \
