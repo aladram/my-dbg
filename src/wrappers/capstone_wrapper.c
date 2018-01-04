@@ -11,6 +11,51 @@
 #include "registers.h"
 #include "temp_memory_utils.h"
 
+void print_instructions(void *addr, size_t count)
+{
+    csh handle;
+
+    if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK)
+        return;
+
+    cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
+
+    for (; count; --count)
+        for(size_t size = 1;; ++size)
+        {
+            if (size >= 16)
+            {
+                cs_close(&handle);
+
+                throw(DisasmException);
+            }
+
+            char *mem = read_memory(addr, size);
+
+            cs_insn *insn;
+
+            size_t disasm_count = cs_disasm(handle, (uint8_t *) mem,
+                                            size, 0, 1, &insn);
+
+            if (disasm_count)
+            {
+                printf("%-18p%-16s%s\n",
+                       (void *) ((size_t) addr + insn[0].address),
+                       insn[0].mnemonic,
+                       insn[0].op_str);
+
+                addr = (char *) addr + insn[0].size;
+            }
+
+            cs_free(insn, disasm_count);
+
+            if (disasm_count)
+                break;
+        }
+
+    cs_close(&handle);
+}
+
 struct my_instr *get_instruction(void *addr)
 {
     char *mem = read_memory(addr, 16);

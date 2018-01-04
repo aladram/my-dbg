@@ -10,6 +10,8 @@ struct my_instr
     size_t size;
 };
 
+void print_instructions(void *addr, size_t count);
+
 struct my_instr *get_instruction(void *addr);
 
 struct my_instr *get_current_instruction(void);
