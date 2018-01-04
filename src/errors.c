@@ -42,3 +42,8 @@ void elf_error(void)
 {
     warnx("elf error");
 }
+
+void disasm_error(void)
+{
+    warnx("Dissasemble failed");
+}

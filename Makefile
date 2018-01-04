@@ -27,6 +27,7 @@ string_utils.c \
 memory_utils.c \
 format_utils.c \
 file_utils.c \
+temp_memory_utils.c \
 exceptions.c \
 cmd_quit.c \
 cmd_info_regs.c \

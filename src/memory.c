@@ -10,7 +10,7 @@
 #include "binary.h"
 #include "exceptions.h"
 #include "format_utils.h"
-#include "memory_utils.h"
+#include "temp_memory_utils.h"
 
 char *read_memory(void *addr, size_t size)
 {
@@ -19,25 +19,14 @@ char *read_memory(void *addr, size_t size)
     int fd = open(mem_path, O_RDONLY);
 
     if (fd == -1)
-    {
-        warn("%s", mem_path);
-
         throw(MemoryException);
-    }
 
-    /*
-    * Manual malloc error management here to prevent program stopping
-    * if read_memory fails because user asked for too large memory
-    * page using examine command.
-    */
-    char *buf = calloc((size / sizeof(size_t)
-                        + ((size % sizeof(size_t)) ? 1 : 0))
-                       * sizeof(size_t), 1);
+    char *buf = tmp_calloc((size / sizeof(size_t)
+                            + ((size % sizeof(size_t)) ? 1 : 0))
+                           * sizeof(size_t), 1);
 
     if (!buf)
     {
-        warn("malloc failed");
-
         close(fd);
 
         throw(MemoryException);
@@ -45,18 +34,12 @@ char *read_memory(void *addr, size_t size)
 
     ssize_t ret = pread(fd, buf, size, (off_t) addr);
 
-    if (ret == -1)
-        warn("pread failed");
-
-    else if ((size_t) ret == size)
+    if (ret != -1 && (size_t) ret == size)
     {
         close(fd);
 
         return buf;
     }
-
-    else
-        warnx("Cannot read the whole requested memory");
 
     free(buf);
 
@@ -69,11 +52,11 @@ char *read_memory(void *addr, size_t size)
 
 static size_t add_char(char **buf, size_t length, char c)
 {
-    *buf = my_realloc(*buf, ++length);
+    *buf = tmp_realloc(*buf, length, length + 1);
 
-    (*buf)[length - 1] = c;
+    (*buf)[length] = c;
 
-    return length;
+    return length + 1;
 }
 
 char *read_mem_string(void *addr)

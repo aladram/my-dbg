@@ -52,7 +52,8 @@ enum my_exception
     IOException      = 6,
     MemoryException  = 7,
     ELFException     = 8,
-    SyscallException = 9
+    SyscallException = 9,
+    DisasmException  = 10
 };
 
 struct my_env_list

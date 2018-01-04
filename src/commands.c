@@ -10,6 +10,7 @@
 #include "errors.h"
 #include "exceptions.h"
 #include "string_utils.h"
+#include "temp_memory_utils.h"
 
 extern struct my_cmd __start_cmds[];
 
@@ -135,11 +136,17 @@ void run_command(char *name, char **args)
     {
         elf_error();
     }
+    catch (DisasmException)
+    {
+        disasm_error();
+    }
     catch (Exception)
     {
         warnx("An error occured while trying to execute command %s", cmd->name);
     }
     etry;
+
+    tmp_free_all();
 }
 
 static void print_help(struct my_cmd *cmd)

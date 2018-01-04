@@ -15,4 +15,6 @@ void memory_error(void);
 
 void elf_error(void);
 
+void disasm_error(void);
+
 #endif /* ERRORS_H */

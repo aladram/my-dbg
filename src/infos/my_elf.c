@@ -17,7 +17,7 @@
 #include "format_utils.h"
 #include "gnu_hash_table.h"
 #include "memory.h"
-#include "memory_utils.h"
+#include "temp_memory_utils.h"
 
 static size_t elf_size(void)
 {
@@ -176,7 +176,8 @@ static Elf64_auxv_t *get_auxiliary_vector()
 
     for (size_t length = 1;; ++length)
     {
-        auxv = my_realloc(auxv, sizeof(*auxv) * length);
+        auxv = tmp_realloc(auxv, sizeof(*auxv) * (length - 1),
+                           sizeof(*auxv) * length);
 
         if (fread(auxv + length - 1, sizeof(*auxv), 1, f) != 1)
             throw(IOException);

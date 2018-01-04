@@ -25,11 +25,7 @@ static void attach_process(pid_t pid)
         my_wait(&wstatus);
 
         if (!WIFSTOPPED(wstatus) || WSTOPSIG(wstatus) != SIGSTOP)
-        {
-            warnx("An error occured while trying to debug program");
-
             throw(WaitException);
-        }
 
         my_ptrace(PTRACE_O_EXITKILL, NULL, g_options);
     }
@@ -47,7 +43,7 @@ static void attach_process(pid_t pid)
     {
         g_pid = 0;
 
-        throw(PtraceException);
+        throw(my_ex);
     }
 
     setup_modules();

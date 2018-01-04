@@ -133,8 +133,6 @@ static void examine_memory(char format, void *addr, size_t size)
 
     else if (format == 'i')
         examine_instructions(addr, mem, size);
-
-    free(mem);
 }
 
 static void cmd_examine(size_t argc, char **argv)
