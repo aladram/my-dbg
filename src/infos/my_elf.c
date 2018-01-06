@@ -407,7 +407,8 @@ void *get_address(char *function)
 
     struct my_elf *my_elf = NULL;
 
-    try {
+    try
+    {
         my_elf = open_elf();
 
         addr = get_address_internal(function,
