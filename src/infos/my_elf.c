@@ -31,7 +31,7 @@ static size_t elf_size(void)
     return size;
 }
 
-static void *open_elf(size_t size, int *fd)
+static void *open_elf_exe(size_t size, int *fd)
 {
     char *path = get_proc_path("exe");
 
@@ -86,6 +86,34 @@ static Elf64_Shdr *elf_sections_header(char *elf, Elf64_Ehdr *header)
     return (Elf64_Shdr *) (elf + header->e_shoff);
 }
 
+struct my_elf *open_elf(void)
+{
+    struct my_elf *my_elf = tmp_malloc(sizeof(*my_elf));
+
+    my_elf->size = elf_size();
+
+    my_elf->elf = open_elf_exe(my_elf->size, &my_elf->fd);
+
+    my_elf->header = elf_header(my_elf->elf);
+
+    my_elf->s_headers = elf_sections_header(my_elf->elf, my_elf->header);
+
+    return my_elf;
+}
+
+void close_elf(struct my_elf *my_elf)
+{
+    if (!my_elf)
+        return;
+
+    int ret1 = munmap(my_elf->elf, my_elf->size);
+
+    int ret2 = close(my_elf->fd);
+
+    if (ret1 || ret2)
+        throw(IOException);
+}
+
 static Elf64_Sym *elf_section_symbols(char *elf, Elf64_Shdr *s_header)
 {
     return (Elf64_Sym *) (elf + s_header->sh_offset);
@@ -114,20 +142,27 @@ static char *elf_section_name(Elf64_Ehdr *header, Elf64_Shdr *s_headers,
     return elf_string_section(elf, s_headers, header->e_shstrndx) + sh->sh_name;
 }
 
-void *elf_section(Elf64_Ehdr *header, Elf64_Shdr *s_headers,
-                  char *name, uint32_t sh_type)
+struct my_elf_section *elf_section(struct my_elf *elf, char *name,
+                                   uint32_t sh_type)
 {
-    void *elf = header;
-
-    for (size_t i = 0; i < header->e_shnum; ++i)
+    for (size_t i = 0; i < elf->header->e_shnum; ++i)
     {
-        Elf64_Shdr *sh = s_headers + i;
+        Elf64_Shdr *sh = elf->s_headers + i;
 
-        if (name && strcmp(name, elf_section_name(header, s_headers, sh)))
+        if (name && strcmp(name, elf_section_name(elf->header,
+                                                  elf->s_headers, sh)))
             continue;
 
         if (sh->sh_type == sh_type)
-            return (char *) elf + sh->sh_offset;
+        {
+            struct my_elf_section *s = tmp_malloc(sizeof(*s));
+
+            s->sh = sh;
+            
+            s->addr = (char *) elf->elf + sh->sh_offset;
+
+            return s;
+        }
     }
 
     throw(ELFException);
@@ -366,34 +401,36 @@ static void *get_address_internal(char *function, void *elf,
 */
 void *get_address(char *function)
 {
-    size_t size = elf_size();
-
-    int fd;
-
-    void *elf = open_elf(size, &fd);
-
     void *addr = NULL;
 
     enum my_exception my_ex = None;
 
+    struct my_elf *my_elf = NULL;
+
     try {
-        Elf64_Ehdr *header = elf_header(elf);
+        my_elf = open_elf();
 
-        Elf64_Shdr *s_headers = elf_sections_header(elf, header);
-
-        addr = get_address_internal(function, elf, header, s_headers);
+        addr = get_address_internal(function,
+                                    my_elf->elf,
+                                    my_elf->header,
+                                    my_elf->s_headers);
     }
-    catch (ELFException, IOException)
+    finally
     {
         my_ex = ex;
     }
     etry;
 
-    if (munmap(elf, size) && my_ex == None)
-        my_ex = IOException;
-
-    if (close(fd) && my_ex == None)
-        my_ex = IOException;
+    try
+    {
+        close_elf(my_elf);
+    }
+    catch (IOException)
+    {
+        if (my_ex == None)
+            my_ex = ex;
+    }
+    etry;
 
     if (my_ex != None)
         throw(my_ex);

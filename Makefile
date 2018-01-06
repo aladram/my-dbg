@@ -46,6 +46,7 @@ cmd_break_list.c \
 cmd_break_del.c \
 cmd_disassemble.c \
 cmd_finish.c \
+cmd_list.c \
 binary.c \
 breakpoints.c \
 registers.c \
@@ -57,7 +58,8 @@ libunwind_wrapper.c \
 capstone_wrapper.c \
 my_syscalls.c \
 my_elf.c \
-gnu_hash_table.c
+gnu_hash_table.c \
+my_dwarf.c
 
 OBJS = $(FILES:%.c=%.o)
 
@@ -70,7 +72,7 @@ $(BIN): $(OBJS)
 debug: CFLAGS += -g3
 debug: CFLAGS += -O0
 debug: LDFLAGS += -g3
-debug: clean all
+debug: all
 
 clean-objs:
 	$(RM) $(OBJS) $(OBJS:.o=.d)
