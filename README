@@ -1,1 +1,133 @@
+==============
 my_gdb project
+==============
+
+===========
+DESCRIPTION
+===========
+Linux x86 debugger
+
+=======
+INSTALL
+=======
+Run the following command:
+make
+
+=====
+USAGE
+=====
+./my-dbg [program] [arguments ...]
+
+If program is supplied, my-dbg starts debugging this program.
+Arguments are transmitted to the program if any.
+
+===========
+DEFINITIONS
+===========
+tracee: Program being debugged by my-dbg.
+
+========
+COMMANDS
+========
+
+==> COMMANDS LIST:
+Most commandes does not require any argument. If it does, an usage
+will be available.
+
+The following commands are available even if no program is loaded:
+
+-> help
+Display command name, usage and short description for each command.
+
+-> quit
+Exit my-dbg. Kill the tracee if any.
+
+-> attach
+Attach a running process. PTRACE_MODE_ATTACH permission is required.
+Usage: attach <pid>
+
+The following command are available if my-dbg is debugging a program.
+
+-> info_regs
+Display the tracee's registers (cf. placeholders section for a register list).
+
+-> info_memory
+Display memory mappings of the tracee.
+
+-> break
+Place a breakpoint at the given address.
+Usage: break <address>
+
+-> continue
+Continue program execution. Program starts interrupted, so you need to continue
+to reach placed breakpoints.
+
+-> step_instr
+Go to the next assembly instruction.
+
+-> examine
+Examine tracee's memory.
+3 formats are available:
+ - x: Hexadecimal memory dump.
+ - d: Print integers.
+ - i: Print instructions.
+ - s: Print string.
+Memory is read (<size> bytes) at the address <address>.
+Usage: examine <format> <size> <address>
+
+-> backtrace
+Print the call stack that led to the current function.
+
+-> tbreak
+Place a temporary breakpoint: once the breakpoint is hit, it is disabled.
+Usage: tbreak <address>
+
+-> next_instr
+Go to the next instruction, but step over calls.
+
+-> breakf
+Place a breakpoint on a function using it's name.
+Usage: breakf <function>
+
+-> breaks
+Place a breakpoint on specified syscall entry.
+You can use both syscall and syscall number.
+Usage: breaks <syscall | syscall number>
+
+-> break_list
+List breakpoints: their types, their address and their status.
+
+-> break_del
+Delete a breakpoint by it's ID.
+Usage: break_del <ID>
+
+-> disassemble
+Disassemble <N> instructions at specified address.
+Usage: disassemble <address> <N>
+
+-> finish
+Ends current function.
+
+-> list
+Print current source code line using debugging informations.
+
+Abbreviations are supported (eg. e -> examine).
+For ambiguous cases, cf. aliases.
+
+==> ALIASES:
+Because a good developper is a lazy developper, here are some aliases:
+
+b -> break
+bt -> backtrace
+bs -> breaks
+bf -> breakf
+
+==> PLACEHOLDERS:
+Please note that the folliwing placeholders are available
+when a numeric argument is requested:
+  %rip %rsp %rbp %eflags %orig_rax %rax %rbx %rcx %rdx %rdi %rsi
+  %r8 %r9 %r10 %r11 %r12 %r13 %r14 %r15 %cs %ds %es %fs %gs %ss
+  %fs_base %gs_base
+
+Example: disas %rip 5: dissasemble 5 instructions starting to
+                       the current program position
