@@ -26,7 +26,7 @@ struct my_cmd {
 #define register_command_with_alias(Name, Type, Function, \
                                     Description, Usage, Alias) \
     static struct my_cmd __cmd_ ## Name \
-__attribute__ ((section("cmds"), used)) = \
+__attribute__ ((section("cmds"), used)) __attribute__ ((aligned (8))) = \
 { \
     .name = #Name, \
     .type = Type, \
