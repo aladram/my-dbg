@@ -15,5 +15,5 @@ static void cmd_list(size_t argc, char **argv)
 register_command(list,
                  PROGRAM_REQUIRED,
                  cmd_list,
-                 "Print current line",
+                 "Print current source code line",
                  "list");
