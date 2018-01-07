@@ -150,7 +150,8 @@ static void standard_instruction(struct my_dw_lconf *lconf,
         sm->basic_block = true;
 
     else if (opcode == DW_LNS_const_add_pc)
-        advance_addr_and_op_index(lconf, sm, read_leb128(ptr));
+        advance_addr_and_op_index(lconf, sm,
+                                  (255 - VAL(opcode_base)) / VAL(line_range));
 
     else if (opcode == DW_LNS_fixed_advance_pc)
     {

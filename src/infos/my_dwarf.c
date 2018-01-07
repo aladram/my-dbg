@@ -1,6 +1,7 @@
 #include "my_dwarf.h"
 
 #include <err.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -152,11 +153,40 @@ static struct my_dw_lines *dwarf_lines(void *s_addr)
     return lines;
 }
 
-static size_t addr_dist(void *addr1, void *addr2)
+static long addr_dist(void *addr1, void *addr2)
 {
     long diff = (char *) addr1 - (char *) addr2;
 
-    return (size_t) (diff > 0 ? diff : -diff);
+    if (diff <= 0)
+        return -diff;
+
+    return LONG_MAX;
+}
+
+static struct my_dw_sm *get_nearest_state(struct my_dw_lines *lines, void *addr)
+{
+    long dist = LONG_MAX;
+
+    struct my_dw_sm *my_sm = NULL;
+
+    for (size_t i = 0; lines->states[i]; ++i)
+    {
+        struct my_dw_sm *sm = lines->states[i];
+
+        long d = addr_dist(sm->address, addr);
+
+        if (d == LONG_MAX)
+            continue;
+
+        if (d <= dist)
+        {
+            dist = d;
+
+            my_sm = sm;
+        }
+    }
+
+    return my_sm;
 }
 
 static void print_line_at_addr(struct my_elf *elf, void *addr)
@@ -168,23 +198,7 @@ static void print_line_at_addr(struct my_elf *elf, void *addr)
 
     struct my_dw_lines *lines = dwarf_lines(s->addr);
 
-    size_t dist = ~0;
-
-    struct my_dw_sm *my_sm = NULL;
-
-    for (size_t i = 0; lines->states[i]; ++i)
-    {
-        struct my_dw_sm *sm = lines->states[i];
-
-        size_t d = addr_dist(addr, sm->address);
-
-        if (d < dist)
-        {
-            dist = d;
-
-            my_sm = sm;
-        }
-    }
+    struct my_dw_sm *my_sm = get_nearest_state(lines, addr);
 
     if (!my_sm)
     {

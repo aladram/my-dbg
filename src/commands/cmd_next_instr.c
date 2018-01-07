@@ -5,6 +5,7 @@
 #include "breakpoints.h"
 #include "capstone_wrapper.h"
 #include "commands.h"
+#include "my-dbg.h"
 #include "registers.h"
 #include "string_utils.h"
 
@@ -33,6 +34,9 @@ static void cmd_next_instr(size_t argc, char **argv)
 
     else
         single_step();
+
+    if (g_quit)
+        return;
 
     rip = get_register(MY_REG_RIP);
 

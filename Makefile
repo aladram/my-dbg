@@ -73,6 +73,7 @@ $(BIN): $(OBJS)
 debug: CFLAGS += -g3
 debug: CFLAGS += -O0
 debug: LDFLAGS += -g3
+debug: CPPFLAGS += -DMY_DEBUG
 debug: all
 
 clean-objs:
