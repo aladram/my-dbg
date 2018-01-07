@@ -59,7 +59,8 @@ capstone_wrapper.c \
 my_syscalls.c \
 my_elf.c \
 gnu_hash_table.c \
-my_dwarf.c
+my_dwarf.c \
+dwarf_state_machine.c
 
 OBJS = $(FILES:%.c=%.o)
 

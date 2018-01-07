@@ -1,6 +1,7 @@
 Features:
 * Test attach (permission denied at school)
 * read_memory: exceptions
+* continue work on DWARF
 
 Clean:
 * /!\ README

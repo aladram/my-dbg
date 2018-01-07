@@ -19,4 +19,6 @@ void disasm_error(void);
 
 void unwind_error(void);
 
+void dwarf_error(void);
+
 #endif /* ERRORS_H */

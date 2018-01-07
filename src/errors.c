@@ -35,12 +35,12 @@ void io_error(void)
 
 void memory_error(void)
 {
-    warn("memory error");
+    warn("Memory error");
 }
 
 void elf_error(void)
 {
-    warnx("elf error");
+    warnx("ELF error");
 }
 
 void disasm_error(void)
@@ -51,4 +51,9 @@ void disasm_error(void)
 void unwind_error(void)
 {
     warnx("Unwind failed");
+}
+
+void dwarf_error(void)
+{
+    warnx("DWARF error");
 }

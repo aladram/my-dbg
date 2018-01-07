@@ -51,6 +51,7 @@ static char *exception_name(enum my_exception ex)
     CASE_EX_NAME(SyscallException);
     CASE_EX_NAME(DisasmException);
     CASE_EX_NAME(UnwindException);
+    CASE_EX_NAME(DWARFException);
     }
 
     return "UnknownException";

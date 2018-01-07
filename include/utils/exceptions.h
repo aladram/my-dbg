@@ -54,7 +54,8 @@ enum my_exception
     ELFException     = 8,
     SyscallException = 9,
     DisasmException  = 10,
-    UnwindException  = 11
+    UnwindException  = 11,
+    DWARFException   = 12
 };
 
 struct my_env_list

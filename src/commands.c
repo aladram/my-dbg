@@ -144,6 +144,10 @@ void run_command(char *name, char **args)
     {
         unwind_error();
     }
+    catch (DWARFException)
+    {
+        dwarf_error();
+    }
     catch (Exception)
     {
         warnx("An error occured while trying to execute command %s", cmd->name);

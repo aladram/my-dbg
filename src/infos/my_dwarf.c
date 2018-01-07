@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "dwarf_state_machine.h"
 #include "exceptions.h"
 #include "my_elf.h"
 #include "registers.h"
@@ -16,62 +17,7 @@
 * and versions 2, 3 and 4 of DWARF standard
 */
 
-// Dwarf line program header
-struct my_dw_lhdr
-{
-    uint32_t unit_length;
-
-    uint16_t version;
-} __attribute__ ((packed));
-
-struct my_dw_lhdr2
-{
-    uint32_t header_length;
-
-    uint8_t minimum_instruction_length;
-
-    uint8_t default_is_stmt;
-
-    int8_t line_base;
-
-    uint8_t line_range;
-
-    uint8_t opcode_base;
-
-    /* uint8_t standard_opcode_lengths[opcode_base - 1]; */
-
-    /* char *include_directories[]; */
-
-    /* file_names: complicated format... */
-
-    // DO NOT USE: here only to ignore compilation error
-    uint8_t maximum_operations_per_instruction;
-} __attribute__ ((packed));
-
-struct my_dw_lhdr4
-{
-    uint32_t header_length;
-
-    uint8_t minimum_instruction_length;
-
-    uint8_t maximum_operations_per_instruction;
-
-    uint8_t default_is_stmt;
-
-    int8_t line_base;
-
-    uint8_t line_range;
-
-    uint8_t opcode_base;
-
-    /* uint8_t standard_opcode_lengths[opcode_base - 1]; */
-
-    /* char *include_directories[]; */
-
-    /* file_names: complicated format... */
-} __attribute__ ((packed));
-
-static uint64_t read_leb128(uint8_t **ptr)
+uint64_t read_leb128(uint8_t **ptr)
 {
     uint64_t result = 0;
 
@@ -87,61 +33,6 @@ static uint64_t read_leb128(uint8_t **ptr)
 
     return result;
 }
-
-// Dwarf state machine structure
-struct my_dw_sm
-{
-    unsigned address;
-
-    unsigned op_index;
-
-    unsigned file;
-
-    unsigned line;
-
-    unsigned column;
-
-    bool is_stmt;
-
-    bool basic_block;
-
-    bool end_sequence;
-
-    bool prologue_end;
-
-    bool epilogue_begin;
-
-    unsigned isa;
-
-    unsigned discriminator;
-};
-
-struct my_dw_file
-{
-    char *path;
-
-    uint64_t index;
-
-    uint64_t last_modification;
-
-    uint64_t file_size;
-};
-
-struct my_dw_lconf
-{
-    struct my_dw_lhdr *lhdr;
-
-    void *lhdrx;
-
-    // Length: opcode_base - 1
-    uint8_t *standard_opcode_lengths;
-
-    // Null terminated
-    char **include_directories;
-
-    // Null terminated
-    struct my_dw_file **files;
-};
 
 static size_t add_string(char ***array, char *str, size_t length)
 {
@@ -184,17 +75,6 @@ static struct my_dw_file **store_files(char *str)
     return files;
 }
 
-#define CONF_VALUE_AUX(Lconf, Key) \
-                               ((Lconf->lhdr->version < 4) \
-                               ? (((struct my_dw_lhdr2 *) Lconf->lhdrx)->Key) \
-                               : (((struct my_dw_lhdr4 *) Lconf->lhdrx)->Key))
-
-#define CONF_VALUE(Lconf, Key) \
-           ((Lconf->lhdr->version < 4 \
-            && !strcmp(#Key, "maximum_operations_per_instruction")) \
-            ? 1 : CONF_VALUE_AUX(Lconf, Key))
-
-#define VAL(Key) CONF_VALUE(lconf, Key)
 
 static struct my_dw_lconf *dwarf_lines_config(void *s_addr)
 {
@@ -229,49 +109,24 @@ static struct my_dw_lconf *dwarf_lines_config(void *s_addr)
     return lconf;
 }
 
-static struct my_dw_sm *init_machine(struct my_dw_lconf *lconf)
+void reset_machine(struct my_dw_lconf *lconf, struct my_dw_sm *sm)
 {
-    struct my_dw_sm *sm = tmp_calloc(1, sizeof(*sm));
+    memset(sm, 0, sizeof(*sm));
 
     sm->file = 1;
 
     sm->line = 1;
 
     sm->is_stmt = VAL(default_is_stmt) ? true : false;
+}
+
+static struct my_dw_sm *init_machine(struct my_dw_lconf *lconf)
+{
+    struct my_dw_sm *sm = tmp_malloc(sizeof(*sm));
+
+    reset_machine(lconf, sm);
 
     return sm;
-}
-
-/*static*/ void special_instruction(struct my_dw_lconf *lconf,
-                                struct my_dw_sm *sm, uint8_t opcode)
-{
-    uint8_t adj_opcode = opcode - VAL(opcode_base);
-
-    uint8_t op_adv = adj_opcode / VAL(line_range);
-
-    sm->address += (VAL(minimum_instruction_length)
-                    * ((sm->op_index + op_adv)
-                       / VAL(maximum_operations_per_instruction)));
-
-    sm->op_index = ((sm->op_index + op_adv)
-                    % VAL(maximum_operations_per_instruction));
-
-    sm->line += VAL(line_base) + (adj_opcode % VAL(line_range));
-}
-
-static struct my_dw_sm **run_machine(struct my_dw_lconf *lconf,
-                                     struct my_dw_sm *sm,
-                                     uint8_t *s_addr)
-{
-    (void)lconf;
-
-    (void)sm;
-
-    (void)s_addr;
-
-    /*s_addr += ...;*/
-
-    return NULL;
 }
 
 #include <assert.h>
@@ -281,7 +136,7 @@ static void dwarf_lines(void *s_addr)
 
     struct my_dw_sm *sm = init_machine(lconf);
 
-    run_machine(lconf, sm, s_addr);
+    run_machine(lconf, sm);
 
     assert(0 && "Not implemented");
 }
