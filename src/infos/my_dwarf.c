@@ -233,14 +233,30 @@ static void print_line_at_addr(struct my_elf *elf, void *addr)
     print_file_line(dir, file->path, my_sm->line);
 }
 
-static void get_line_address_internal(struct my_elf *elf,
-                                      char *file, unsigned line)
+static void *get_line_address_internal(struct my_elf *elf,
+                                       char *file, unsigned line)
 {
-    (void) elf;
+    void *base_addr = calc_base_address(elf->elf, NULL);
 
-    (void) file;
+    struct my_elf_section *s = elf_section(elf, ".debug_line", SHT_PROGBITS);
 
-    (void) line;
+    struct my_dw_lines *lines = dwarf_lines(s->addr);
+
+    (void)file;
+
+    for (size_t i = 0; lines->states[i]; ++i)
+    {
+        struct my_dw_sm *sm = lines->states[i];
+
+        if (sm->line == line)
+            return (char *) base_addr + (size_t) sm->address;
+    }
+
+    warn("No line found");
+
+    throw(DWARFException);
+
+    return NULL;
 }
 
 #define SAFE_DWARF(Code) \
@@ -285,7 +301,7 @@ void *get_line_address(char *file, unsigned line)
 {
     void *addr = NULL;
 
-    SAFE_DWARF(get_line_address_internal(elf, file, line));
+    SAFE_DWARF(addr = get_line_address_internal(elf, file, line));
 
     return addr;
 }
