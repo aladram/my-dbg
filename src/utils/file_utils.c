@@ -26,6 +26,8 @@ char *real_path(char *path)
     if (readlink(path, buf, MY_PATH_MAX) <= 0)
         throw(IOException);
 
+    buf[strrchr(buf, '/') - buf] = 0;
+
     return buf;
 }
 

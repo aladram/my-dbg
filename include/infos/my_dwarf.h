@@ -2,6 +2,7 @@
 # define MY_DWARF_H
 
 # include <stdbool.h>
+# include <stddef.h>
 # include <stdint.h>
 
 /*
@@ -144,5 +145,7 @@ uint64_t read_leb128(uint8_t **ptr);
 void reset_machine(struct my_dw_lconf *lconf, struct my_dw_sm *sm);
 
 void print_line(void);
+
+void *get_line_address(char *file, unsigned line);
 
 #endif /* MY_DWARF_H */

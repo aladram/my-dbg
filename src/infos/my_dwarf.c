@@ -163,7 +163,8 @@ static long addr_dist(void *addr1, void *addr2)
     return LONG_MAX;
 }
 
-static struct my_dw_sm *get_nearest_state(struct my_dw_lines *lines, void *addr)
+static struct my_dw_sm *get_nearest_state(struct my_dw_lines *lines,
+                                          void *addr, void *base_addr)
 {
     long dist = LONG_MAX;
 
@@ -173,7 +174,7 @@ static struct my_dw_sm *get_nearest_state(struct my_dw_lines *lines, void *addr)
     {
         struct my_dw_sm *sm = lines->states[i];
 
-        long d = addr_dist(sm->address, addr);
+        long d = addr_dist((char *) base_addr + (size_t) sm->address, addr);
 
         if (d == LONG_MAX)
             continue;
@@ -194,11 +195,13 @@ static void print_line_at_addr(struct my_elf *elf, void *addr)
     // HARDCODING, please use DW_AT_stmt_list
     // size_t offset = 0;
 
+    void *base_addr = calc_base_address(elf->elf, NULL);
+
     struct my_elf_section *s = elf_section(elf, ".debug_line", SHT_PROGBITS);
 
     struct my_dw_lines *lines = dwarf_lines(s->addr);
 
-    struct my_dw_sm *my_sm = get_nearest_state(lines, addr);
+    struct my_dw_sm *my_sm = get_nearest_state(lines, addr, base_addr);
 
     if (!my_sm)
     {
@@ -230,37 +233,59 @@ static void print_line_at_addr(struct my_elf *elf, void *addr)
     print_file_line(dir, file->path, my_sm->line);
 }
 
+static void get_line_address_internal(struct my_elf *elf,
+                                      char *file, unsigned line)
+{
+    (void) elf;
+
+    (void) file;
+
+    (void) line;
+}
+
+#define SAFE_DWARF(Code) \
+    enum my_exception my_ex = None; \
+ \
+    struct my_elf *elf = NULL; \
+ \
+    try \
+    { \
+        elf = open_elf(); \
+ \
+        Code; \
+    } \
+    finally \
+    { \
+        my_ex = ex; \
+    } \
+    etry; \
+ \
+    try \
+    { \
+        close_elf(elf); \
+    } \
+    catch (IOException) \
+    { \
+        if (my_ex == None) \
+            my_ex = ex; \
+    } \
+    etry; \
+ \
+    if (my_ex != None) \
+        throw(my_ex)
+
 void print_line(void)
 {
     void *addr = (void *) get_register(MY_REG_RIP);
 
-    enum my_exception my_ex = None;
+    SAFE_DWARF(print_line_at_addr(elf, addr));
+}
 
-    struct my_elf *elf = NULL;
+void *get_line_address(char *file, unsigned line)
+{
+    void *addr = NULL;
 
-    try
-    {
-        elf = open_elf();
+    SAFE_DWARF(get_line_address_internal(elf, file, line));
 
-        print_line_at_addr(elf, addr);
-    }
-    finally
-    {
-        my_ex = ex;
-    }
-    etry;
-
-    try
-    {
-        close_elf(elf);
-    }
-    catch (IOException)
-    {
-        if (my_ex == None)
-            my_ex = ex;
-    }
-    etry;
-
-    if (my_ex != None)
-        throw(my_ex);
+    return addr;
 }

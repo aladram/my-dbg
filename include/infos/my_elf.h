@@ -32,6 +32,8 @@ struct my_elf_section *elf_section(struct my_elf *elf, char *name,
 void *get_dynamic_entry(char *base_addr,
                         Elf64_Dyn *dyn_section, Elf64_Sxword d_tag);
 
+void *calc_base_address(Elf64_Ehdr *header, Elf64_Phdr **ph_ptr);
+
 void *get_address(char *function);
 
 void close_elf(struct my_elf *my_elf);

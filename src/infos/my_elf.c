@@ -325,6 +325,18 @@ static void *get_address_dyn(char *function, Elf64_Dyn *dyn_section,
     return NULL;
 }
 
+void *calc_base_address(Elf64_Ehdr *header, Elf64_Phdr **ph_ptr)
+{
+    Elf64_auxv_t *auxv = get_auxiliary_vector();
+
+    Elf64_Phdr *p_headers = extract_program_headers(auxv);
+
+    if (ph_ptr)
+        *ph_ptr = p_headers;
+
+    return get_base_address(header, p_headers);
+}
+
 static void *get_address_internal(char *function, void *elf,
                                   Elf64_Ehdr *header, Elf64_Shdr *s_headers)
 {
@@ -342,11 +354,9 @@ static void *get_address_internal(char *function, void *elf,
     else if (header->e_type != ET_DYN)
         throw(ELFException);
 
-    Elf64_auxv_t *auxv = get_auxiliary_vector();
+    Elf64_Phdr *p_headers;
 
-    Elf64_Phdr *p_headers = extract_program_headers(auxv);
-
-    void *base_addr = get_base_address(header, p_headers);
+    void *base_addr = calc_base_address(header, &p_headers);
 
     addr = get_address_exec(function, elf, header, s_headers);
 
