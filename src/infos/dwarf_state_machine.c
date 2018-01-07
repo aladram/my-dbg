@@ -44,6 +44,18 @@ static void clone_state(struct my_dw_sm *sm,
     memcpy(state, sm, sizeof(*sm));
 }
 
+static void advance_addr_and_op_index(struct my_dw_lconf *lconf,
+                                      struct my_dw_sm *sm,
+                                      uint64_t op_adv)
+{
+    sm->address += (VAL(minimum_instruction_length)
+                    * ((sm->op_index + op_adv)
+                       / VAL(maximum_operations_per_instruction)));
+
+    sm->op_index = ((sm->op_index + op_adv)
+                    % VAL(maximum_operations_per_instruction));
+}
+
 static void extended_instruction(struct my_dw_lconf *lconf,
                                  struct my_dw_sm *sm,
                                  struct my_dw_sm ***states,
@@ -56,6 +68,10 @@ static void extended_instruction(struct my_dw_lconf *lconf,
 
     uint8_t opcode = *((*ptr)++);
 
+#ifdef MY_DEBUG
+    warnx("Extended instruction: 0x%02hhu", opcode);
+#endif
+
     if (opcode == DW_LNE_end_sequence)
     {
         sm->end_sequence = true;
@@ -67,17 +83,16 @@ static void extended_instruction(struct my_dw_lconf *lconf,
 
     else if (opcode == DW_LNE_set_address)
     {
-        sm->address = *((void **) *ptr);
+        sm->address = *((void **) (*ptr));
 
         *ptr += sizeof(void *);
 
         sm->op_index = 0;
     }
 
-    else if (opcode >= DW_LNE_define_file
-             && opcode <= DW_LNS_set_isa)
+    else if (opcode == DW_LNE_define_file)
     {
-        warnx("Unsupported operation");
+        warnx("Unsupported operation: 0x%02hhx", opcode);
 
         throw(DWARFException);
     }
@@ -87,7 +102,7 @@ static void extended_instruction(struct my_dw_lconf *lconf,
 
     else
     {
-        warnx("Invalid extended instruction");
+        warnx("Invalid extended instruction: 0x%02hhx", opcode);
 
         throw(DWARFException);
     }
@@ -117,15 +132,47 @@ static void standard_instruction(struct my_dw_lconf *lconf,
     }
 
     else if (opcode == DW_LNS_advance_pc)
-    {
-        warnx("Unsupported operation");
+        advance_addr_and_op_index(lconf, sm, read_leb128(ptr));
 
-        throw(DWARFException);
+    else if (opcode == DW_LNS_advance_line)
+        sm->line += read_leb128(ptr);
+
+    else if (opcode == DW_LNS_set_file)
+        sm->file = read_leb128(ptr);
+
+    else if (opcode == DW_LNS_set_column)
+        sm->column = read_leb128(ptr);
+
+    else if (opcode == DW_LNS_negate_stmt)
+        sm->is_stmt = !sm->is_stmt;
+
+    else if (opcode == DW_LNS_set_basic_block)
+        sm->basic_block = true;
+
+    else if (opcode == DW_LNS_const_add_pc)
+        advance_addr_and_op_index(lconf, sm, read_leb128(ptr));
+
+    else if (opcode == DW_LNS_fixed_advance_pc)
+    {
+        sm->address += *((uint16_t *) (*ptr));
+
+        *ptr += sizeof(uint16_t);
+
+        sm->op_index = 0;
     }
+
+    else if (opcode == DW_LNS_set_prologue_end)
+        sm->prologue_end = true;
+
+    else if (opcode == DW_LNS_set_epilogue_begin)
+        sm->epilogue_begin = true;
+
+    else if (opcode == DW_LNS_set_isa)
+        sm->isa = read_leb128(ptr);
 
     else
     {
-        warnx("Invalid standard instruction");
+        warnx("Invalid standard instruction: 0x%02hhx", opcode);
 
         throw(DWARFException);
     }
@@ -148,12 +195,7 @@ static void special_instruction(struct my_dw_lconf *lconf,
     sm->line += VAL(line_base) + (adj_opcode % VAL(line_range));
 
     // 2.
-    sm->address += (VAL(minimum_instruction_length)
-                    * ((sm->op_index + op_adv)
-                       / VAL(maximum_operations_per_instruction)));
-
-    sm->op_index = ((sm->op_index + op_adv)
-                    % VAL(maximum_operations_per_instruction));
+    advance_addr_and_op_index(lconf, sm, op_adv);
 
     // 3.
     clone_state(sm, states, length);
@@ -177,22 +219,42 @@ struct my_dw_sm **run_machine(struct my_dw_lconf *lconf,
     uint8_t *ptr = ((uint8_t *) (lconf->lhdr + 1)
                     + sizeof(uint32_t) + VAL(header_length));
 
-    size_t size = lconf->lhdr->unit_length - VAL(header_length) - 10;
+    size_t size = lconf->lhdr->unit_length - VAL(header_length) - 6;
 
     struct my_dw_sm **states = NULL;
 
     size_t length = 0;
 
-    for (size_t i = 0; i < size; ++i)
+    for (size_t i = 0; i < size;)
     {
+        uint8_t *bck = ptr;
+
         if (!*ptr)
             extended_instruction(lconf, sm, &states, &length, &ptr);
 
         else if (*ptr < VAL(opcode_base))
+        {
+#ifdef MY_DEBUG
+            warnx("Standard instruction: 0x%02hhu", *ptr);
+#endif
+
             standard_instruction(lconf, sm, &states, &length, &ptr);
+        }
 
         else
+        {
+#ifdef MY_DEBUG
+            warnx("Special instruction: 0x%02hhu", *ptr - VAL(opcode_base));
+#endif
+
             special_instruction(lconf, sm, &states, &length, *(ptr++));
+        }
+
+#ifdef MY_DEBUG
+        warnx("Instruction total length: %ld", ptr - bck);
+#endif
+
+        i += ptr - bck;
     }
 
     states = tmp_realloc(states, sizeof(sm) * length,

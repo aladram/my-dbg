@@ -1,5 +1,6 @@
 #include "my_dwarf.h"
 
+#include <err.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -8,6 +9,8 @@
 
 #include "dwarf_state_machine.h"
 #include "exceptions.h"
+#include "file_utils.h"
+#include "format_utils.h"
 #include "my_elf.h"
 #include "registers.h"
 #include "temp_memory_utils.h"
@@ -85,12 +88,12 @@ static struct my_dw_lconf *dwarf_lines_config(void *s_addr)
     lconf->lhdrx = (void *) ((struct my_dw_lhdr *) lconf->lhdr + 1);
 
     if (lconf->lhdr->version < 4)
-        lconf->standard_opcode_lengths = (void *) ((struct my_dw_lhdr2 *)
-                                                   lconf->lhdrx + 1);
+        lconf->standard_opcode_lengths = (uint8_t *) ((struct my_dw_lhdr2 *)
+                                                      lconf->lhdrx + 1) - 1;
 
     else
-        lconf->standard_opcode_lengths = (void *) ((struct my_dw_lhdr4 *)
-                                                   lconf->lhdrx + 1);
+        lconf->standard_opcode_lengths = (uint8_t *) ((struct my_dw_lhdr4 *)
+                                                      lconf->lhdrx + 1);
 
     size_t length = 0;
 
@@ -129,16 +132,31 @@ static struct my_dw_sm *init_machine(struct my_dw_lconf *lconf)
     return sm;
 }
 
-#include <assert.h>
-static void dwarf_lines(void *s_addr)
+struct my_dw_lines
 {
-    struct my_dw_lconf *lconf = dwarf_lines_config(s_addr);
+    struct my_dw_lconf *lconf;
 
-    struct my_dw_sm *sm = init_machine(lconf);
+    struct my_dw_sm **states;
+};
 
-    run_machine(lconf, sm);
+static struct my_dw_lines *dwarf_lines(void *s_addr)
+{
+    struct my_dw_lines *lines = tmp_malloc(sizeof(*lines));
 
-    assert(0 && "Not implemented");
+    lines->lconf = dwarf_lines_config(s_addr);
+
+    struct my_dw_sm *sm = init_machine(lines->lconf);
+
+    lines->states = run_machine(lines->lconf, sm);
+
+    return lines;
+}
+
+static size_t addr_dist(void *addr1, void *addr2)
+{
+    long diff = (char *) addr1 - (char *) addr2;
+
+    return (size_t) (diff > 0 ? diff : -diff);
 }
 
 static void print_line_at_addr(struct my_elf *elf, void *addr)
@@ -146,13 +164,56 @@ static void print_line_at_addr(struct my_elf *elf, void *addr)
     // HARDCODING, please use DW_AT_stmt_list
     // size_t offset = 0;
 
-    (void) addr;
-
     struct my_elf_section *s = elf_section(elf, ".debug_line", SHT_PROGBITS);
 
-    dwarf_lines(s->addr);
+    struct my_dw_lines *lines = dwarf_lines(s->addr);
 
-    // ...
+    size_t dist = ~0;
+
+    struct my_dw_sm *my_sm = NULL;
+
+    for (size_t i = 0; lines->states[i]; ++i)
+    {
+        struct my_dw_sm *sm = lines->states[i];
+
+        size_t d = addr_dist(addr, sm->address);
+
+        if (d < dist)
+        {
+            dist = d;
+
+            my_sm = sm;
+        }
+    }
+
+    if (!my_sm)
+    {
+        warnx("No line found: no debugging informations?");
+
+        return;
+    }
+
+    if (!my_sm->file)
+        throw(DWARFException);
+
+    struct my_dw_file *file = lines->lconf->files[my_sm->file - 1];
+
+    char *dir;
+
+    if (!file->path)
+        throw(DWARFException);
+
+    if (file->path[0] == '/')
+        dir = NULL;
+    
+    if (!file->index)
+        dir = real_path(get_proc_path("exe"));
+
+    // TODO: check include_directories array length
+    else
+        dir = lines->lconf->include_directories[file->index - 1];
+
+    print_file_line(dir, file->path, my_sm->line);
 }
 
 void print_line(void)
